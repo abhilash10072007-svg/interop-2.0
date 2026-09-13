@@ -1,0 +1,837 @@
+[
+  {
+    "citizen_id": "CIT00001",
+    "aadhaar_number": "9999 1001 5506",
+    "aadhaar_masked": "XXXX XXXX 5506",
+    "name": "Advik Kumer",
+    "gender": "Male",
+    "dob": "1953-10-21",
+    "phone": "+910347825070",
+    "email": "avni71@example.com",
+    "address": {
+      "line1": "297, Tripathi Road",
+      "district": "Coimbatore",
+      "state": "Tamil Nadu",
+      "pincode": "516264"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910015506",
+    "linked_schemes": [
+      "Ayushman Bharat"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00002",
+    "aadhaar_number": "9999 1002 9935",
+    "aadhaar_masked": "XXXX XXXX 9935",
+    "name": "Jacob Kaur",
+    "gender": "Male",
+    "dob": "2001-05-06",
+    "phone": "+917052820979",
+    "email": "yashasvi18@example.org",
+    "address": {
+      "line1": "29\nBahl Street",
+      "district": "Chennai",
+      "state": "Tamil Nadu",
+      "pincode": "680996"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910029935",
+    "linked_schemes": [],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00003",
+    "aadhaar_number": "9999 1003 1488",
+    "aadhaar_masked": "XXXX XXXX 1488",
+    "name": "Rajeshri Karnik",
+    "gender": "Female",
+    "dob": "1953-01-27",
+    "phone": "+914347961108",
+    "email": "schadha@example.org",
+    "address": {
+      "line1": "H.No. 401, Barad Road",
+      "district": "Coimbatore",
+      "state": "Tamil Nadu",
+      "pincode": "310962"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910031488",
+    "linked_schemes": [],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00004",
+    "aadhaar_number": "9999 1004 9279",
+    "aadhaar_masked": "XXXX XXXX 9279",
+    "name": "George Narang",
+    "gender": "Male",
+    "dob": "1970-12-06",
+    "phone": "+912984721960",
+    "email": "sarthaknadig@example.org",
+    "address": {
+      "line1": "06/379\nDixit Street",
+      "district": "Kochi",
+      "state": "Kerala",
+      "pincode": "409576"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910049279",
+    "linked_schemes": [],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00005",
+    "aadhaar_number": "9999 1005 7873",
+    "aadhaar_masked": "XXXX XXXX 7873",
+    "name": "Ryan Khurana",
+    "gender": "Male",
+    "dob": "2004-04-04",
+    "phone": "+914431840564",
+    "email": "pbawa@example.com",
+    "address": {
+      "line1": "H.No. 37, Salvi Road",
+      "district": "Hyderabad",
+      "state": "Telangana",
+      "pincode": "018894"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910057873",
+    "linked_schemes": [
+      "MGNREGA"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00006",
+    "aadhaar_number": "9999 1006 3615",
+    "aadhaar_masked": "XXXX XXXX 3615",
+    "name": "Yochana Pant",
+    "gender": "Female",
+    "dob": "1972-06-01",
+    "phone": "+914319053933",
+    "email": "daniel49@example.org",
+    "address": {
+      "line1": "79/588, Madan Chowk",
+      "district": "Coimbatore",
+      "state": "Tamil Nadu",
+      "pincode": "801270"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910063615",
+    "linked_schemes": [
+      "PMAY",
+      "Ration Card (NFSA)",
+      "PM-KISAN"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00007",
+    "aadhaar_number": "9999 1007 2674",
+    "aadhaar_masked": "XXXX XXXX 2674",
+    "name": "Naveen Shere",
+    "gender": "Male",
+    "dob": "1954-04-20",
+    "phone": "+919836953421",
+    "email": "qushibaral@example.com",
+    "address": {
+      "line1": "H.No. 631\nDora Ganj",
+      "district": "Pune",
+      "state": "Maharashtra",
+      "pincode": "262630"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910072674",
+    "linked_schemes": [],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00008",
+    "aadhaar_number": "9999 1008 6881",
+    "aadhaar_masked": "XXXX XXXX 6881",
+    "name": "Odika Vaidya",
+    "gender": "Female",
+    "dob": "1965-04-25",
+    "phone": "+919092678948",
+    "email": "forumchokshi@example.com",
+    "address": {
+      "line1": "327, Hayer Ganj",
+      "district": "Chennai",
+      "state": "Tamil Nadu",
+      "pincode": "331901"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910086881",
+    "linked_schemes": [
+      "Ration Card (NFSA)",
+      "PMAY"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00009",
+    "aadhaar_number": "9999 1009 9785",
+    "aadhaar_masked": "XXXX XXXX 9785",
+    "name": "Chanakya Verma",
+    "gender": "Male",
+    "dob": "1967-05-01",
+    "phone": "+910874026103",
+    "email": "devanshdalia@example.net",
+    "address": {
+      "line1": "H.No. 594\nDesai Circle",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "pincode": "542221"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910099785",
+    "linked_schemes": [],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00010",
+    "aadhaar_number": "9999 1010 5803",
+    "aadhaar_masked": "XXXX XXXX 5803",
+    "name": "Triveni Thakur",
+    "gender": "Female",
+    "dob": "1992-08-01",
+    "phone": "+911470236871",
+    "email": "tamanna91@example.com",
+    "address": {
+      "line1": "H.No. 148\nKala",
+      "district": "Chennai",
+      "state": "Tamil Nadu",
+      "pincode": "595199"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910105803",
+    "linked_schemes": [
+      "Ration Card (NFSA)",
+      "Ayushman Bharat"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00011",
+    "aadhaar_number": "9999 1011 4733",
+    "aadhaar_masked": "XXXX XXXX 4733",
+    "name": "Nihal Sankar",
+    "gender": "Male",
+    "dob": "1989-08-08",
+    "phone": "+914151476770",
+    "email": "ucontractor@example.com",
+    "address": {
+      "line1": "H.No. 75\nTandon Zila",
+      "district": "Coimbatore",
+      "state": "Tamil Nadu",
+      "pincode": "926585"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910114733",
+    "linked_schemes": [
+      "PM-KISAN",
+      "Ayushman Bharat"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00012",
+    "aadhaar_number": "9999 1012 5554",
+    "aadhaar_masked": "XXXX XXXX 5554",
+    "name": "Viraj Oommen",
+    "gender": "Male",
+    "dob": "1995-11-29",
+    "phone": "+915988395118",
+    "email": "bhasinsudiksha@example.org",
+    "address": {
+      "line1": "H.No. 000, Roy Zila",
+      "district": "New Delhi",
+      "state": "Delhi",
+      "pincode": "053063"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910125554",
+    "linked_schemes": [
+      "PMAY",
+      "Ayushman Bharat",
+      "MGNREGA"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00013",
+    "aadhaar_number": "9999 1013 5374",
+    "aadhaar_masked": "XXXX XXXX 5374",
+    "name": "Urishilla Dhingra",
+    "gender": "Female",
+    "dob": "1985-01-26",
+    "phone": "+916683716653",
+    "email": "tkadakia@example.org",
+    "address": {
+      "line1": "636\nVarughese Marg",
+      "district": "Kochi",
+      "state": "Kerala",
+      "pincode": "340518"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910135374",
+    "linked_schemes": [],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00014",
+    "aadhaar_number": "9999 1014 5010",
+    "aadhaar_masked": "XXXX XXXX 5010",
+    "name": "Reyansh Dube",
+    "gender": "Male",
+    "dob": "1983-04-26",
+    "phone": "+916785963954",
+    "email": "ommani@example.net",
+    "address": {
+      "line1": "43/883\nWali Path",
+      "district": "Hyderabad",
+      "state": "Telangana",
+      "pincode": "793014"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910145010",
+    "linked_schemes": [
+      "MGNREGA"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00015",
+    "aadhaar_number": "9999 1015 4598",
+    "aadhaar_masked": "XXXX XXXX 4598",
+    "name": "Pushti Kothari",
+    "gender": "Female",
+    "dob": "1975-07-22",
+    "phone": "+914800363469",
+    "email": "agoda@example.net",
+    "address": {
+      "line1": "87/09, Sheth Nagar",
+      "district": "Bengaluru",
+      "state": "Karnataka",
+      "pincode": "680138"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910154598",
+    "linked_schemes": [
+      "PM-KISAN",
+      "Ayushman Bharat"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00016",
+    "aadhaar_number": "9999 1016 7572",
+    "aadhaar_masked": "XXXX XXXX 7572",
+    "name": "Warinder Bhat",
+    "gender": "Male",
+    "dob": "1981-03-01",
+    "phone": "+916321674160",
+    "email": "muniayaan@example.com",
+    "address": {
+      "line1": "936, Bava Chowk",
+      "district": "Pune",
+      "state": "Maharashtra",
+      "pincode": "350468"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910167572",
+    "linked_schemes": [
+      "PM-KISAN",
+      "Ayushman Bharat"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00017",
+    "aadhaar_number": "9999 1017 9179",
+    "aadhaar_masked": "XXXX XXXX 9179",
+    "name": "Maya Munshi",
+    "gender": "Female",
+    "dob": "1979-05-25",
+    "phone": "+917369592192",
+    "email": "lipika25@example.org",
+    "address": {
+      "line1": "91/020\nRana Ganj",
+      "district": "Kochi",
+      "state": "Kerala",
+      "pincode": "936071"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910179179",
+    "linked_schemes": [
+      "MGNREGA",
+      "Ayushman Bharat",
+      "Ration Card (NFSA)"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00018",
+    "aadhaar_number": "9999 1018 9830",
+    "aadhaar_masked": "XXXX XXXX 9830",
+    "name": "Wriddhish De",
+    "gender": "Male",
+    "dob": "1983-01-03",
+    "phone": "+917148098871",
+    "email": "gopalmann@example.org",
+    "address": {
+      "line1": "04/792\nKhatri Chowk",
+      "district": "Kochi",
+      "state": "Kerala",
+      "pincode": "698228"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910189830",
+    "linked_schemes": [
+      "Ration Card (NFSA)",
+      "MGNREGA"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00019",
+    "aadhaar_number": "9999 1019 4593",
+    "aadhaar_masked": "XXXX XXXX 4593",
+    "name": "Sudiksha Bala",
+    "gender": "Female",
+    "dob": "1976-02-09",
+    "phone": "+914557412633",
+    "email": "keyajayaraman@example.org",
+    "address": {
+      "line1": "38/677\nMohanty Marg",
+      "district": "Pune",
+      "state": "Maharashtra",
+      "pincode": "660252"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910194593",
+    "linked_schemes": [
+      "Ration Card (NFSA)"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00020",
+    "aadhaar_number": "9999 1020 1771",
+    "aadhaar_masked": "XXXX XXXX 1771",
+    "name": "Yashoda Sridhar",
+    "gender": "Female",
+    "dob": "1984-01-26",
+    "phone": "+912501767038",
+    "email": "ovarma@example.com",
+    "address": {
+      "line1": "H.No. 79\nSehgal Path",
+      "district": "Chennai",
+      "state": "Tamil Nadu",
+      "pincode": "970511"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910201771",
+    "linked_schemes": [],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00021",
+    "aadhaar_number": "9999 1021 7916",
+    "aadhaar_masked": "XXXX XXXX 7916",
+    "name": "Abdul Mani",
+    "gender": "Male",
+    "dob": "1981-02-11",
+    "phone": "+910641148611",
+    "email": "jatin33@example.org",
+    "address": {
+      "line1": "96\nSaini Chowk",
+      "district": "Madurai",
+      "state": "Tamil Nadu",
+      "pincode": "281867"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910217916",
+    "linked_schemes": [],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00022",
+    "aadhaar_number": "9999 1022 8668",
+    "aadhaar_masked": "XXXX XXXX 8668",
+    "name": "Xalak Hari",
+    "gender": "Female",
+    "dob": "1967-04-20",
+    "phone": "+913905113862",
+    "email": "nadigvedika@example.net",
+    "address": {
+      "line1": "H.No. 261, Sant",
+      "district": "New Delhi",
+      "state": "Delhi",
+      "pincode": "610235"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910228668",
+    "linked_schemes": [
+      "Ration Card (NFSA)",
+      "PM-KISAN"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00023",
+    "aadhaar_number": "9999 1023 5371",
+    "aadhaar_masked": "XXXX XXXX 5371",
+    "name": "Onveer Mody",
+    "gender": "Male",
+    "dob": "1961-07-09",
+    "phone": "+911603262607",
+    "email": "nachiketbarad@example.com",
+    "address": {
+      "line1": "96/62, Mani Circle",
+      "district": "Hyderabad",
+      "state": "Telangana",
+      "pincode": "031985"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910235371",
+    "linked_schemes": [
+      "PM-KISAN",
+      "PMAY"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00024",
+    "aadhaar_number": "9999 1024 8433",
+    "aadhaar_masked": "XXXX XXXX 8433",
+    "name": "Aishani Das",
+    "gender": "Female",
+    "dob": "2003-01-07",
+    "phone": "+915249319185",
+    "email": "mdutta@example.org",
+    "address": {
+      "line1": "H.No. 45, Dada Nagar",
+      "district": "Madurai",
+      "state": "Tamil Nadu",
+      "pincode": "768319"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910248433",
+    "linked_schemes": [],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00025",
+    "aadhaar_number": "9999 1025 3927",
+    "aadhaar_masked": "XXXX XXXX 3927",
+    "name": "Leena Saini",
+    "gender": "Female",
+    "dob": "1979-10-17",
+    "phone": "+917566024542",
+    "email": "harsh33@example.net",
+    "address": {
+      "line1": "H.No. 96\nMinhas Path",
+      "district": "Hyderabad",
+      "state": "Telangana",
+      "pincode": "826120"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910253927",
+    "linked_schemes": [],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00026",
+    "aadhaar_number": "9999 1026 4258",
+    "aadhaar_masked": "XXXX XXXX 4258",
+    "name": "Chaitaly Barad",
+    "gender": "Female",
+    "dob": "1951-03-30",
+    "phone": "+913209588459",
+    "email": "wishilata@example.com",
+    "address": {
+      "line1": "50/79\nBains Ganj",
+      "district": "Hyderabad",
+      "state": "Telangana",
+      "pincode": "827598"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910264258",
+    "linked_schemes": [
+      "PMAY"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00027",
+    "aadhaar_number": "9999 1027 9689",
+    "aadhaar_masked": "XXXX XXXX 9689",
+    "name": "Nitesh Choudhary",
+    "gender": "Male",
+    "dob": "1991-03-27",
+    "phone": "+911982790643",
+    "email": "surichanakya@example.com",
+    "address": {
+      "line1": "63/151\nSrinivas Street",
+      "district": "Hyderabad",
+      "state": "Telangana",
+      "pincode": "756155"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910279689",
+    "linked_schemes": [],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00028",
+    "aadhaar_number": "9999 1028 1319",
+    "aadhaar_masked": "XXXX XXXX 1319",
+    "name": "Barkha Chand",
+    "gender": "Female",
+    "dob": "2002-06-27",
+    "phone": "+918257127300",
+    "email": "bhavinidhawan@example.net",
+    "address": {
+      "line1": "H.No. 19\nDeshmukh Marg",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "pincode": "215897"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910281319",
+    "linked_schemes": [],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00029",
+    "aadhaar_number": "9999 1029 4923",
+    "aadhaar_masked": "XXXX XXXX 4923",
+    "name": "Vedika Kari",
+    "gender": "Female",
+    "dob": "1989-11-22",
+    "phone": "+913252953549",
+    "email": "ekavir78@example.org",
+    "address": {
+      "line1": "049\nPradhan Nagar",
+      "district": "Bengaluru",
+      "state": "Karnataka",
+      "pincode": "704349"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910294923",
+    "linked_schemes": [],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00030",
+    "aadhaar_number": "9999 1030 2403",
+    "aadhaar_masked": "XXXX XXXX 2403",
+    "name": "Abeer Sodhi",
+    "gender": "Male",
+    "dob": "1995-04-12",
+    "phone": "+912325221607",
+    "email": "diya32@example.net",
+    "address": {
+      "line1": "45/739\nMital Ganj",
+      "district": "Chennai",
+      "state": "Tamil Nadu",
+      "pincode": "743956"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910302403",
+    "linked_schemes": [
+      "PM-KISAN",
+      "Ayushman Bharat",
+      "Ration Card (NFSA)"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00031",
+    "aadhaar_number": "9999 1031 3705",
+    "aadhaar_masked": "XXXX XXXX 3705",
+    "name": "Jalsa Chakraborty",
+    "gender": "Female",
+    "dob": "1960-11-07",
+    "phone": "+917515757358",
+    "email": "vrittimenon@example.com",
+    "address": {
+      "line1": "68/58\nGanguly Road",
+      "district": "Hyderabad",
+      "state": "Telangana",
+      "pincode": "956461"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910313705",
+    "linked_schemes": [
+      "Ration Card (NFSA)",
+      "MGNREGA"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00032",
+    "aadhaar_number": "9999 1032 4295",
+    "aadhaar_masked": "XXXX XXXX 4295",
+    "name": "Yatan Nair",
+    "gender": "Male",
+    "dob": "1985-11-14",
+    "phone": "+911427397582",
+    "email": "yraghavan@example.com",
+    "address": {
+      "line1": "55/134\nSandal",
+      "district": "Hyderabad",
+      "state": "Telangana",
+      "pincode": "576831"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910324295",
+    "linked_schemes": [
+      "MGNREGA",
+      "PMAY"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00033",
+    "aadhaar_number": "9999 1033 8397",
+    "aadhaar_masked": "XXXX XXXX 8397",
+    "name": "Upma Parekh",
+    "gender": "Female",
+    "dob": "1952-03-10",
+    "phone": "+919274948209",
+    "email": "warinderdugal@example.net",
+    "address": {
+      "line1": "H.No. 29, Rajagopalan Ganj",
+      "district": "Hyderabad",
+      "state": "Telangana",
+      "pincode": "429476"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910338397",
+    "linked_schemes": [],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00034",
+    "aadhaar_number": "9999 1034 2049",
+    "aadhaar_masked": "XXXX XXXX 2049",
+    "name": "Guneet Bahri",
+    "gender": "Male",
+    "dob": "1984-03-05",
+    "phone": "+912765351281",
+    "email": "yugmore@example.org",
+    "address": {
+      "line1": "H.No. 95\nNarain Chowk",
+      "district": "Kochi",
+      "state": "Kerala",
+      "pincode": "853643"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910342049",
+    "linked_schemes": [
+      "PM-KISAN",
+      "Ayushman Bharat"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00035",
+    "aadhaar_number": "9999 1035 2163",
+    "aadhaar_masked": "XXXX XXXX 2163",
+    "name": "Ranbir Zachariah",
+    "gender": "Male",
+    "dob": "2008-08-14",
+    "phone": "+913012074887",
+    "email": "ereddy@example.net",
+    "address": {
+      "line1": "32/759\nParekh Chowk",
+      "district": "Coimbatore",
+      "state": "Tamil Nadu",
+      "pincode": "583054"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910352163",
+    "linked_schemes": [],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00036",
+    "aadhaar_number": "9999 1036 1514",
+    "aadhaar_masked": "XXXX XXXX 1514",
+    "name": "Isaiah Sama",
+    "gender": "Male",
+    "dob": "1998-02-13",
+    "phone": "+910962746204",
+    "email": "rbhardwaj@example.net",
+    "address": {
+      "line1": "H.No. 74, Boase Ganj",
+      "district": "Chennai",
+      "state": "Tamil Nadu",
+      "pincode": "225082"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910361514",
+    "linked_schemes": [
+      "PM-KISAN",
+      "Ayushman Bharat"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00037",
+    "aadhaar_number": "9999 1037 4510",
+    "aadhaar_masked": "XXXX XXXX 4510",
+    "name": "Adya Narasimhan",
+    "gender": "Female",
+    "dob": "1979-09-06",
+    "phone": "+912762556322",
+    "email": "thomas38@example.com",
+    "address": {
+      "line1": "75/36, Gola Chowk",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "pincode": "406971"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910374510",
+    "linked_schemes": [
+      "Ration Card (NFSA)"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00038",
+    "aadhaar_number": "9999 1038 8749",
+    "aadhaar_masked": "XXXX XXXX 8749",
+    "name": "Jasmit Kanda",
+    "gender": "Female",
+    "dob": "1978-06-27",
+    "phone": "+914097261734",
+    "email": "rdyal@example.org",
+    "address": {
+      "line1": "18/52, Luthra Marg",
+      "district": "Kochi",
+      "state": "Kerala",
+      "pincode": "407566"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910388749",
+    "linked_schemes": [
+      "Ayushman Bharat",
+      "PM-KISAN",
+      "MGNREGA"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00039",
+    "aadhaar_number": "9999 1039 7939",
+    "aadhaar_masked": "XXXX XXXX 7939",
+    "name": "Maya Ganesh",
+    "gender": "Female",
+    "dob": "1978-05-16",
+    "phone": "+914700901833",
+    "email": "batrakabir@example.net",
+    "address": {
+      "line1": "70\nAnne Chowk",
+      "district": "Pune",
+      "state": "Maharashtra",
+      "pincode": "437107"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910397939",
+    "linked_schemes": [
+      "MGNREGA",
+      "PM-KISAN",
+      "PMAY"
+    ],
+    "kyc_verified": true
+  },
+  {
+    "citizen_id": "CIT00040",
+    "aadhaar_number": "9999 1040 7596",
+    "aadhaar_masked": "XXXX XXXX 7596",
+    "name": "Nathaniel Mandal",
+    "gender": "Male",
+    "dob": "1978-02-06",
+    "phone": "+916442966741",
+    "email": "zseth@example.net",
+    "address": {
+      "line1": "08\nWali Street",
+      "district": "Coimbatore",
+      "state": "Tamil Nadu",
+      "pincode": "150742"
+    },
+    "photo_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=999910407596",
+    "linked_schemes": [
+      "PM-KISAN",
+      "Ayushman Bharat"
+    ],
+    "kyc_verified": true
+  }
+]
