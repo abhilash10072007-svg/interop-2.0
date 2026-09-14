@@ -4,11 +4,13 @@ import random
 from pathlib import Path
 
 DATA_FILE = Path(__file__).parent / "data"
+CITIZENS_PATH = DATA_FILE / "synthetic_citizens.json"
+LOOKUP_PATH = DATA_FILE / "aadhaar_lookup.json"
 
-with open(DATA_FILE / "synthetic_citizens.json", "r") as f:
+with open(CITIZENS_PATH, "r") as f:
     _citizens_list_ = json.load(f)
 
-with open(DATA_FILE / "aadhaar_lookup.json", "r") as f:
+with open(LOOKUP_PATH, "r") as f:
     _aadhaar_list_ = json.load(f)
 
 _citizens_id_ = {citizen["citizen_id"]: citizen for citizen in _citizens_list_}
@@ -63,3 +65,36 @@ def get_citizen_profile(aadhaar_lookup: str) -> dict | None:
 
 def get_citizen_profile_by_id(citizen_id: str) -> dict | None:
     return _citizens_id_.get(citizen_id)
+
+
+def _persist_to_disk():
+    with open(CITIZENS_PATH, "w") as f:
+        json.dump(list(_citizens_id_.values()), f, indent=2)
+    with open(LOOKUP_PATH, "w") as f:
+        json.dump(_aadhaar_list_, f, indent=2)
+
+
+def create_citizen_profile(aadhaar_lookup: str, data: dict) -> dict:
+    new_id = f"CIT{len(_citizens_id_) + 1:05d}"
+    profile = {
+        "citizen_id": new_id,
+        "aadhaar_number": data["aadhaar_number"],
+        "aadhaar_masked": f"XXXX XXXX {aadhaar_lookup[-4:]}",
+        "name": data["name"],
+        "dob": data["dob"],
+        "phone": data["phone"],
+        "email": data["email"],
+        "address": {
+            "line1": data["address_line1"],
+            "district": data["district"],
+            "state": data["state"],
+            "pincode": data["pincode"],
+        },
+        "photo_url": f"https://api.dicebear.com/7.x/avataaars/svg?seed={aadhaar_lookup}",
+        "linked_schemes": [],
+        "kyc_verified": True,
+    }
+    _citizens_id_[new_id] = profile
+    _aadhaar_list_[aadhaar_lookup] = new_id
+    _persist_to_disk()
+    return profile

@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Interop — Sign in</title>
+<style>
+  :root{
+    --navy-dark:#0d2a63;
+    --navy-mid:#123a8c;
+    --blue-bright:#2f5fe0;
+    --blue-accent:#2952e3;
+    --blue-accent-dark:#2141c4;
+    --ink:#101828;
+    --ink-soft:#475467;
+    --border:#e4e7ec;
+    --border-soft:#eef1f5;
+    --bg:#f5f7fb;
+    --danger:#d92d20;
+    --success:#12805c;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+  }
+  .topbar{
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    gap:24px;
+    padding:16px 32px;
+    font-size:14px;
+    color:var(--ink-soft);
+  }
+  .topbar span{display:flex;align-items:center;gap:6px;cursor:default;}
+  .shell{
+    max-width:1180px;
+    margin:0 auto 40px;
+    display:grid;
+    grid-template-columns:420px 1fr;
+    border-radius:20px;
+    overflow:hidden;
+    box-shadow:0 20px 60px -25px rgba(13,42,99,.35);
+  }
+  /* LEFT PANEL */
+  .hero{
+    background:linear-gradient(160deg,var(--navy-dark) 0%,var(--navy-mid) 45%,var(--blue-bright) 100%);
+    color:#fff;
+    padding:40px 36px 0;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    min-height:640px;
+  }
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:36px;}
+  .brand svg{flex-shrink:0;}
+  .brand-text .name{font-size:26px;font-weight:700;letter-spacing:.2px;}
+  .brand-text .mark{font-size:11px;opacity:.75;letter-spacing:.5px;}
+  .hero h1{font-size:34px;line-height:1.2;font-weight:700;margin:0 0 10px;}
+  .hero .tagline{font-size:15px;opacity:.85;margin:0 0 28px;}
+  .feature{display:flex;gap:14px;align-items:flex-start;margin-bottom:18px;}
+  .feature-icon{
+    width:38px;height:38px;flex-shrink:0;border-radius:10px;
+    background:rgba(255,255,255,.14);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .feature-text .t{font-weight:600;font-size:14.5px;}
+  .feature-text .s{font-size:13px;opacity:.75;margin-top:2px;}
+  .hero-illustration{margin-top:auto;position:relative;height:220px;}
+  /* RIGHT PANEL */
+  .panel{background:#fff;padding:44px 56px 40px;}
+  .tabs{display:flex;background:#eef1f8;border-radius:12px;padding:4px;margin-bottom:28px;}
+  .tab{
+    flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+    padding:11px 0;border-radius:9px;font-weight:600;font-size:15px;
+    cursor:pointer;color:var(--ink-soft);
+    background:transparent;
+    transition:background .15s ease, color .15s ease, box-shadow .15s ease;
+    user-select:none;
+  }
+  .tab.active{background:#fff;color:var(--blue-accent-dark);box-shadow:0 1px 3px rgba(16,24,40,.12);}
+  h2.welcome{font-size:26px;margin:0 0 6px;}
+  .sub{color:var(--ink-soft);font-size:14.5px;margin:0 0 26px;}
+  .field{margin-bottom:18px;}
+  .field label{
+    display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;
+    color:var(--ink);margin-bottom:8px;
+  }
+  .mobile-row{display:flex;gap:10px;}
+  .country-code{
+    display:flex;align-items:center;gap:6px;border:1px solid var(--border);
+    border-radius:10px;padding:0 12px;font-size:14.5px;color:var(--ink-soft);
+    background:#fafbfc;
+  }
+  input[type=text], input[type=tel]{
+    width:100%;border:1px solid var(--border);border-radius:10px;
+    padding:13px 14px;font-size:14.5px;color:var(--ink);outline:none;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  input::placeholder{color:#98a2b3;}
+  input:focus{border-color:var(--blue-accent);box-shadow:0 0 0 3px rgba(41,82,227,.12);}
+  input:disabled{background:#f7f8fa;color:#98a2b3;cursor:not-allowed;}
+  .input-wrap{position:relative;flex:1;}
+  .aadhaar-toggle{
+    position:absolute;right:12px;top:50%;transform:translateY(-50%);
+    background:none;border:none;cursor:pointer;color:#98a2b3;padding:4px;
+    display:flex;
+  }
+  .otp-row{display:flex;gap:10px;align-items:center;justify-content:space-between;}
+  .otp-boxes{display:flex;gap:8px;}
+  .otp-box{
+    width:44px;height:48px;text-align:center;font-size:18px;font-weight:600;
+    border:1px solid var(--border);border-radius:10px;padding:0;
+  }
+  .resend{
+    display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--blue-accent);
+    background:none;border:none;cursor:pointer;font-weight:600;white-space:nowrap;
+  }
+  .resend:disabled{color:#98a2b3;cursor:not-allowed;}
+  .otp-meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:13px;color:var(--ink-soft);min-height:18px;}
+  .demo-otp{
+    margin-top:8px;font-size:13px;background:#fff7e6;border:1px solid #ffe1a8;
+    color:#8a5b00;padding:8px 12px;border-radius:8px;
+  }
+  .error-text{color:var(--danger);font-size:13px;margin-top:6px;}
+  .login-btn{
+    width:100%;padding:14px;border:none;border-radius:10px;
+    background:linear-gradient(90deg,var(--blue-accent),var(--blue-accent-dark));
+    color:#fff;font-size:15.5px;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    margin-top:6px;transition:opacity .15s ease, transform .05s ease;
+  }
+  .login-btn:disabled{opacity:.55;cursor:not-allowed;}
+  .login-btn:not(:disabled):active{transform:translateY(1px);}
+  .divider{display:flex;align-items:center;gap:14px;margin:22px 0;color:#98a2b3;font-size:13px;}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--border);}
+  .google-btn{
+    width:100%;padding:13px;border:1px solid var(--border);border-radius:10px;
+    background:#fff;font-size:14.5px;font-weight:600;color:var(--ink);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:10px;
+  }
+  .footer-link{text-align:center;font-size:14px;color:var(--ink-soft);margin-top:22px;}
+  .footer-link a{color:var(--blue-accent);font-weight:600;text-decoration:none;}
+
+  /* Profile / logged-in view */
+  .profile-card{display:none;}
+  .profile-card.active{display:block;}
+  .profile-header{display:flex;align-items:center;gap:16px;margin-bottom:22px;}
+  .profile-header img{width:64px;height:64px;border-radius:50%;background:#eef1f8;}
+  .profile-header .pname{font-size:19px;font-weight:700;}
+  .profile-header .pid{font-size:13px;color:var(--ink-soft);}
+  .profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;margin-bottom:24px;}
+  .profile-grid .g-label{font-size:12px;color:#98a2b3;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;}
+  .profile-grid .g-value{font-size:14.5px;font-weight:500;}
+  .badge{display:inline-block;background:#eaf7f0;color:var(--success);font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px;}
+  .logout-btn{
+    padding:11px 18px;border:1px solid var(--border);border-radius:10px;background:#fff;
+    color:var(--ink);font-weight:600;font-size:14px;cursor:pointer;
+  }
+
+  #loginForm.hidden{display:none;}
+  .hidden{display:none;}
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13.5px;
+    opacity:0;pointer-events:none;transition:opacity .2s ease, transform .2s ease;
+    box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:50;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px);}
+
+  @media (max-width:900px){
+    .shell{grid-template-columns:1fr;}
+    .hero{min-height:280px;}
+    .hero-illustration{display:none;}
+    .panel{padding:32px 24px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span>🎧 Need Help?</span>
+  <span>🌐 English ⌄</span>
+</div>
+
+<div class="shell">
+  <!-- LEFT HERO PANEL -->
+  <div class="hero">
+    <div class="brand">
+      <svg width="40" height="44" viewBox="0 0 40 44" fill="none">
+        <circle cx="20" cy="12" r="10" stroke="#fff" stroke-width="1.6" fill="none" opacity=".9"/>
+        <circle cx="20" cy="12" r="2.2" fill="#fff"/>
+        <rect x="17.3" y="22" width="5.4" height="14" rx="1" fill="#fff" opacity=".9"/>
+        <rect x="12" y="36" width="16" height="3" rx="1.4" fill="#fff" opacity=".9"/>
+      </svg>
+      <div class="brand-text">
+        <div class="name">Interop</div>
+        <div class="mark">सत्यमेव जयते</div>
+      </div>
+    </div>
+
+    <h1>Your Gateway to<br/>Government Services</h1>
+    <p class="tagline">Simple. Secure. Transparent.</p>
+
+    <div class="feature">
+      <div class="feature-icon">👤</div>
+      <div class="feature-text">
+        <div class="t">Access 100+ public services</div>
+        <div class="s">One platform, many services</div>
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🛡️</div>
+      <div class="feature-text">
+        <div class="t">Track applications in real-time</div>
+        <div class="s">Stay informed, always</div>
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🔒</div>
+      <div class="feature-text">
+        <div class="t">Secure &amp; trusted platform</div>
+        <div class="s">Your data, our priority</div>
+      </div>
+    </div>
+
+    <div class="hero-illustration">
+      <svg viewBox="0 0 400 220" width="100%" height="100%" preserveAspectRatio="xMidYMax meet">
+        <rect x="0" y="150" width="400" height="70" fill="rgba(255,255,255,.05)"/>
+        <g opacity=".9">
+          <rect x="90" y="90" width="220" height="70" fill="rgba(255,255,255,.12)"/>
+          <rect x="100" y="60" width="200" height="34" fill="rgba(255,255,255,.16)"/>
+          <circle cx="200" cy="55" r="26" fill="rgba(255,255,255,.18)"/>
+          <rect x="188" y="30" width="24" height="26" fill="rgba(255,255,255,.16)"/>
+          <rect x="196" y="14" width="8" height="18" fill="rgba(255,255,255,.2)"/>
+          <g fill="rgba(255,255,255,.35)">
+            <rect x="105" y="100" width="10" height="50"/>
+            <rect x="130" y="100" width="10" height="50"/>
+            <rect x="155" y="100" width="10" height="50"/>
+            <rect x="180" y="100" width="10" height="50"/>
+            <rect x="210" y="100" width="10" height="50"/>
+            <rect x="235" y="100" width="10" height="50"/>
+            <rect x="260" y="100" width="10" height="50"/>
+            <rect x="285" y="100" width="10" height="50"/>
+          </g>
+        </g>
+        <g>
+          <rect x="46" y="60" width="3" height="60" fill="#fff" opacity=".8"/>
+          <path d="M49 62 L88 74 L49 86 Z" fill="#FF9933"/>
+          <path d="M49 74 L88 86 L49 98 Z" fill="#fff"/>
+          <path d="M49 86 L88 98 L49 110 Z" fill="#138808"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab active" id="tabLogin">👤 Login</div>
+      <div class="tab" id="tabSignup">➕ Sign Up</div>
+    </div>
+
+    <form id="loginForm" autocomplete="off">
+      <h2 class="welcome">Welcome Back</h2>
+      <p class="sub">Sign in to continue to your account.</p>
+
+      <div class="field">
+        <label>📱 Mobile Number</label>
+        <div class="mobile-row">
+          <div class="country-code">🇮🇳 +91 ⌄</div>
+          <input type="tel" id="mobile" placeholder="Enter your 10-digit mobile number" maxlength="10" inputmode="numeric" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>🆔 Aadhaar Number</label>
+        <div class="input-wrap">
+          <input type="text" id="aadhaar" placeholder="Enter your 12-digit Aadhaar number" maxlength="14" inputmode="numeric" />
+          <button type="button" class="aadhaar-toggle" id="aadhaarToggle" title="Show/Hide">👁️</button>
+        </div>
+        <div class="error-text" id="aadhaarError"></div>
+        <div class="demo-otp" id="demoOtpBox" style="display:none;"></div>
+      </div>
+
+      <div class="field">
+        <label>🛡️ Enter OTP</label>
+        <div class="otp-row">
+          <div class="otp-boxes" id="otpBoxes">
+            <input class="otp-box" maxlength="1" inputmode="numeric" disabled />
+            <input class="otp-box" maxlength="1" inputmode="numeric" disabled />
+            <input class="otp-box" maxlength="1" inputmode="numeric" disabled />
+            <input class="otp-box" maxlength="1" inputmode="numeric" disabled />
+            <input class="otp-box" maxlength="1" inputmode="numeric" disabled />
+            <input class="otp-box" maxlength="1" inputmode="numeric" disabled />
+          </div>
+          <button type="button" class="resend" id="resendBtn" disabled>↻ Resend OTP</button>
+        </div>
+        <div class="otp-meta">
+          <span id="timerLabel"></span>
+          <span class="error-text" id="otpError"></span>
+        </div>
+      </div>
+
+      <button type="submit" class="login-btn" id="loginBtn" disabled>Login →</button>
+
+
+    </form>
+    <form id="signupForm" class="hidden" autocomplete="off">
+  <h2 class="welcome">Create Account</h2>
+  <p class="sub">Verify your Aadhaar, then tell us a bit about yourself.</p>
+
+  <div class="field">
+    <label>🆔 Aadhaar Number</label>
+    <div class="input-wrap">
+      <input type="text" id="suAadhaar" placeholder="Enter your 12-digit Aadhaar number" maxlength="14" inputmode="numeric" />
+    </div>
+    <div class="error-text" id="suAadhaarError"></div>
+    <div class="demo-otp" id="suDemoOtpBox" style="display:none;"></div>
+  </div>
+
+  <div class="field">
+    <label>🛡️ Enter OTP</label>
+    <div class="otp-row">
+      <div class="otp-boxes" id="suOtpBoxes">
+        <input class="otp-box" maxlength="1" inputmode="numeric" disabled />
+        <input class="otp-box" maxlength="1" inputmode="numeric" disabled />
+        <input class="otp-box" maxlength="1" inputmode="numeric" disabled />
+        <input class="otp-box" maxlength="1" inputmode="numeric" disabled />
+        <input class="otp-box" maxlength="1" inputmode="numeric" disabled />
+        <input class="otp-box" maxlength="1" inputmode="numeric" disabled />
+      </div>
+      <button type="button" class="resend" id="suResendBtn" disabled>↻ Resend OTP</button>
+    </div>
+    <div class="otp-meta">
+      <span id="suTimerLabel"></span>
+      <span class="error-text" id="suOtpError"></span>
+    </div>
+    <button type="button" class="login-btn" id="suVerifyBtn" disabled style="margin-top:10px;">Verify OTP</button>
+  </div>
+
+  <div id="suDetailsSection" class="hidden">
+    <div class="field"><label>Full Name</label><input type="text" id="suName" placeholder="Full name" /></div>
+    <div class="field"><label>Date of Birth</label><input type="text" id="suDob" placeholder="YYYY-MM-DD" /></div>
+    <div class="field"><label>Phone</label><input type="text" id="suPhone" placeholder="+91XXXXXXXXXX" /></div>
+    <div class="field"><label>Email</label><input type="text" id="suEmail" placeholder="you@example.com" /></div>
+    <div class="field"><label>Address Line 1</label><input type="text" id="suAddress" placeholder="House no, street" /></div>
+    <div class="field"><label>District</label><input type="text" id="suDistrict" placeholder="District" /></div>
+    <div class="field"><label>State</label><input type="text" id="suState" placeholder="State" /></div>
+    <div class="field"><label>Pincode</label><input type="text" id="suPincode" placeholder="Pincode" /></div>
+    <div class="error-text" id="suSubmitError"></div>
+    <button type="submit" class="login-btn" id="suSubmitBtn">Create Account →</button>
+  </div>
+
+  <div class="footer-link">Already have an account? <a href="#" id="loginLink">Login</a></div>
+</form>
+    <!-- LOGGED IN VIEW -->
+    <div class="profile-card" id="profileCard">
+      <div class="profile-header">
+        <img id="pPhoto" src="" alt="" />
+        <div>
+          <div class="pname" id="pName"></div>
+          <div class="pid" id="pId"></div>
+        </div>
+      </div>
+      <div class="profile-grid">
+        <div><div class="g-label">Aadhaar</div><div class="g-value" id="pAadhaar"></div></div>
+        <div><div class="g-label">Phone</div><div class="g-value" id="pPhone"></div></div>
+        <div><div class="g-label">Email</div><div class="g-value" id="pEmail"></div></div>
+        <div><div class="g-label">Date of Birth</div><div class="g-value" id="pDob"></div></div>
+        <div><div class="g-label">Address</div><div class="g-value" id="pAddress"></div></div>
+        <div><div class="g-label">KYC Status</div><div class="g-value"><span class="badge" id="pKyc">Verified</span></div></div>
+      </div>
+      <button class="logout-btn" id="logoutBtn">Log out</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_BASE = "http://127.0.0.1:8000";
+
+const els = {
+  aadhaar: document.getElementById('aadhaar'),
+  aadhaarError: document.getElementById('aadhaarError'),
+  aadhaarToggle: document.getElementById('aadhaarToggle'),
+  demoOtpBox: document.getElementById('demoOtpBox'),
+  otpBoxes: [...document.querySelectorAll('#otpBoxes .otp-box')],
+  otpError: document.getElementById('otpError'),
+  timerLabel: document.getElementById('timerLabel'),
+  resendBtn: document.getElementById('resendBtn'),
+  loginBtn: document.getElementById('loginBtn'),
+  loginForm: document.getElementById('loginForm'),
+  profileCard: document.getElementById('profileCard'),
+  logoutBtn: document.getElementById('logoutBtn'),
+  toast: document.getElementById('toast'),
+  tabLogin: document.getElementById('tabLogin'),
+  tabSignup: document.getElementById('tabSignup'),
+  signupForm: document.getElementById('signupForm'),
+};
+
+let state = {
+  otpSent: false,
+  otpExpirySeconds: 300, // 5 min display countdown
+  timerHandle: null,
+  aadhaarRaw: '',
+  sessionToken: null,
+};
+
+function showToast(msg){
+  els.toast.textContent = msg;
+  els.toast.classList.add('show');
+  setTimeout(()=> els.toast.classList.remove('show'), 2400);
+}
+
+function digitsOnly(str){ return (str || '').replace(/\D/g,''); }
+
+function isValidAadhaarInput(val){
+  return digitsOnly(val).length === 12;
+}
+
+// --- Aadhaar field ---
+let aadhaarVisible = true;
+els.aadhaarToggle.addEventListener('click', ()=>{
+  aadhaarVisible = !aadhaarVisible;
+  els.aadhaar.type = aadhaarVisible ? 'text' : 'password';
+});
+
+els.aadhaar.addEventListener('input', ()=>{
+  els.aadhaarError.textContent = '';
+  const val = els.aadhaar.value;
+  if (isValidAadhaarInput(val) && !state.otpSent && !state.otpRequestInFlight){
+    state.aadhaarRaw = val;
+    state.otpRequestInFlight = true;
+    sendOtp(val).finally(() => { state.otpRequestInFlight = false; });
+  }
+  updateLoginButtonState();
+});
+
+function setOtpBoxesEnabled(enabled){
+  els.otpBoxes.forEach(b => { b.disabled = !enabled; if(!enabled) b.value=''; });
+}
+
+function updateLoginButtonState(){
+  const otpFilled = els.otpBoxes.every(b => b.value.length === 1);
+  els.loginBtn.disabled = !(state.otpSent && otpFilled);
+}
+
+// OTP box behavior: auto-advance / backspace
+els.otpBoxes.forEach((box, i) => {
+  box.addEventListener('input', () => {
+    box.value = digitsOnly(box.value).slice(0,1);
+    if (box.value && els.otpBoxes[i+1]) els.otpBoxes[i+1].focus();
+    updateLoginButtonState();
+  });
+  box.addEventListener('keydown', (e) => {
+    if (e.key === 'Backspace' && !box.value && els.otpBoxes[i-1]) {
+      els.otpBoxes[i-1].focus();
+    }
+  });
+});
+
+async function sendOtp(aadhaarValue){
+  els.aadhaarError.textContent = '';
+  els.demoOtpBox.style.display = 'none';
+  els.aadhaar.disabled = true;
+  try {
+    const res = await fetch(`${API_BASE}/auth/send-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aadhaar_number: aadhaarValue })
+    });
+    const data = await res.json();
+
+    if (res.status === 200 && data.success){
+      state.otpSent = true;
+      setOtpBoxesEnabled(true);
+      els.otpBoxes[0].focus();
+      startTimer(300);
+      if (data.demo_otp){
+        els.demoOtpBox.style.display = 'block';
+        els.demoOtpBox.textContent = `Demo mode: your OTP is ${data.demo_otp}`;
+      }
+      showToast(data.message || 'OTP sent successfully.');
+    } else if (res.status === 422){
+      const msg = data.detail?.[0]?.msg || 'Invalid Aadhaar number.';
+      els.aadhaarError.textContent = msg;
+    } else if (res.status === 429){
+      els.aadhaarError.textContent = data.detail || 'Too many OTP requests. Please try again after some time.';
+    } else {
+      els.aadhaarError.textContent = data.detail || data.message || 'Could not send OTP. Please try again.';
+    }
+  } catch (err){
+    els.aadhaarError.textContent = 'Could not reach the server. Is the backend running on 127.0.0.1:8000?';
+  } finally {
+    els.aadhaar.disabled = false;
+  }
+}
+
+function startTimer(seconds){
+  clearInterval(state.timerHandle);
+  let remaining = seconds;
+  els.resendBtn.disabled = true;
+  render();
+  state.timerHandle = setInterval(() => {
+    remaining -= 1;
+    if (remaining <= 0){
+      clearInterval(state.timerHandle);
+      els.timerLabel.textContent = 'OTP expired';
+      els.resendBtn.disabled = false;
+      return;
+    }
+    render();
+  }, 1000);
+
+  function render(){
+    const m = String(Math.floor(remaining/60)).padStart(2,'0');
+    const s = String(remaining%60).padStart(2,'0');
+    els.timerLabel.textContent = `OTP valid for ${m}:${s}`;
+  }
+}
+
+els.resendBtn.addEventListener('click', () => {
+  if (!state.aadhaarRaw) return;
+  els.otpError.textContent = '';
+  sendOtp(state.aadhaarRaw);
+});
+
+// --- Verify OTP / Login submit ---
+els.loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  els.otpError.textContent = '';
+  const otp = els.otpBoxes.map(b => b.value).join('');
+  if (otp.length !== 6) return;
+
+  els.loginBtn.disabled = true;
+  els.loginBtn.textContent = 'Verifying...';
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aadhaar_number: state.aadhaarRaw, otp })
+    });
+    const data = await res.json();
+
+    if (data.success){
+      state.sessionToken = data.session_token;
+      localStorage.setItem('session_token', data.session_token);
+      clearInterval(state.timerHandle);
+      showProfile(data.citizen_profile);
+      showToast(data.message || 'Login successful.');
+    } else {
+      els.otpError.textContent = data.message || 'Invalid or expired OTP.';
+      els.otpBoxes.forEach(b => b.value = '');
+      els.otpBoxes[0].focus();
+    }
+  } catch (err){
+    els.otpError.textContent = 'Could not reach the server. Is the backend running on 127.0.0.1:8000?';
+  } finally {
+    els.loginBtn.disabled = false;
+    els.loginBtn.textContent = 'Login →';
+    updateLoginButtonState();
+  }
+});
+
+function showProfile(profile){
+  els.loginForm.classList.add('hidden');
+  els.profileCard.classList.add('active');
+  document.getElementById('pPhoto').src = profile.photo_url;
+  document.getElementById('pName').textContent = profile.name;
+  document.getElementById('pId').textContent = profile.citizen_id;
+  document.getElementById('pAadhaar').textContent = profile.aadhaar_masked;
+  document.getElementById('pPhone').textContent = profile.phone;
+  document.getElementById('pEmail').textContent = profile.email;
+  document.getElementById('pDob').textContent = profile.dob;
+  document.getElementById('pAddress').textContent =
+    `${profile.address.line1}, ${profile.address.district}, ${profile.address.state} - ${profile.address.pincode}`;
+  document.getElementById('pKyc').textContent = profile.kyc_verified ? 'Verified' : 'Not verified';
+}
+
+function showLoginForm(){
+  els.loginForm.classList.remove('hidden');
+  els.profileCard.classList.remove('active');
+  els.aadhaar.value = '';
+  state = { otpSent:false, otpExpirySeconds:300, timerHandle:null, aadhaarRaw:'', sessionToken:null };
+  setOtpBoxesEnabled(false);
+  els.timerLabel.textContent = '';
+  els.demoOtpBox.style.display = 'none';
+  updateLoginButtonState();
+}
+
+els.logoutBtn.addEventListener('click', () => {
+  localStorage.removeItem('session_token');
+  showLoginForm();
+});
+
+
+// --- On load: check for an existing valid session (GET /auth/me) ---
+(async function init(){
+  const token = localStorage.getItem('session_token');
+  if (!token) return;
+  try {
+    const res = await fetch(`${API_BASE}/auth/me`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (res.status === 200){
+      const profile = await res.json();
+      state.sessionToken = token;
+      showProfile(profile);
+    } else {
+      localStorage.removeItem('session_token');
+    }
+  } catch (err){
+    // backend not reachable yet — stay on login screen silently
+  }
+})();
+let suOtpVerified = false;
+
+els.tabLogin.addEventListener('click', () => switchTab('login'));
+els.tabSignup.addEventListener('click', () => switchTab('signup'));
+document.getElementById('loginLink')?.addEventListener('click', (e) => { e.preventDefault(); switchTab('login'); });
+document.getElementById('signupLink')?.addEventListener('click', (e) => { e.preventDefault(); switchTab('signup'); });
+
+function switchTab(which){
+  const isLogin = which === 'login';
+  els.tabLogin.classList.toggle('active', isLogin);
+  els.tabSignup.classList.toggle('active', !isLogin);
+  els.loginForm.classList.toggle('hidden', !isLogin);
+  document.getElementById('signupForm').classList.toggle('hidden', isLogin);
+}
+
+const suEls = {
+  aadhaar: document.getElementById('suAadhaar'),
+  aadhaarError: document.getElementById('suAadhaarError'),
+  demoOtpBox: document.getElementById('suDemoOtpBox'),
+  otpBoxes: [...document.querySelectorAll('#suOtpBoxes .otp-box')],
+  otpError: document.getElementById('suOtpError'),
+  timerLabel: document.getElementById('suTimerLabel'),
+  resendBtn: document.getElementById('suResendBtn'),
+  verifyBtn: document.getElementById('suVerifyBtn'),
+  detailsSection: document.getElementById('suDetailsSection'),
+  submitError: document.getElementById('suSubmitError'),
+};
+
+let suState = { aadhaarRaw: '', timerHandle: null, otpRequestInFlight: false };
+
+suEls.aadhaar.addEventListener('input', () => {
+  suEls.aadhaarError.textContent = '';
+  const val = suEls.aadhaar.value;
+  if (isValidAadhaarInput(val) && !suState.otpRequestInFlight){
+    suState.aadhaarRaw = val;
+    suState.otpRequestInFlight = true;
+    suSendOtp(val).finally(() => { suState.otpRequestInFlight = false; });
+  }
+});
+
+suEls.otpBoxes.forEach((box, i) => {
+  box.addEventListener('input', () => {
+    box.value = digitsOnly(box.value).slice(0,1);
+    if (box.value && suEls.otpBoxes[i+1]) suEls.otpBoxes[i+1].focus();
+    suEls.verifyBtn.disabled = !suEls.otpBoxes.every(b => b.value.length === 1);
+  });
+  box.addEventListener('keydown', (e) => {
+    if (e.key === 'Backspace' && !box.value && suEls.otpBoxes[i-1]) suEls.otpBoxes[i-1].focus();
+  });
+});
+
+async function suSendOtp(aadhaarValue){
+  suEls.demoOtpBox.style.display = 'none';
+  try {
+    const res = await fetch(`${API_BASE}/auth/send-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aadhaar_number: aadhaarValue })
+    });
+    const data = await res.json();
+    if (res.status === 200 && data.success){
+      suEls.otpBoxes.forEach(b => b.disabled = false);
+      suEls.otpBoxes[0].focus();
+      if (data.demo_otp){
+        suEls.demoOtpBox.style.display = 'block';
+        suEls.demoOtpBox.textContent = `Demo mode: your OTP is ${data.demo_otp}`;
+      }
+    } else if (res.status === 422){
+      suEls.aadhaarError.textContent = data.detail?.[0]?.msg || 'Invalid Aadhaar number.';
+    } else if (res.status === 429){
+      suEls.aadhaarError.textContent = data.detail || 'Too many requests. Try later.';
+    }
+  } catch (err){
+    suEls.aadhaarError.textContent = 'Could not reach the server.';
+  }
+}
+
+suEls.resendBtn.addEventListener('click', () => suSendOtp(suState.aadhaarRaw));
+
+suEls.verifyBtn.addEventListener('click', async () => {
+  const otp = suEls.otpBoxes.map(b => b.value).join('');
+  suEls.otpError.textContent = '';
+  try {
+    const res = await fetch(`${API_BASE}/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aadhaar_number: suState.aadhaarRaw, otp })
+    });
+    const data = await res.json();
+    if (data.success){
+      // Already has an account — send them to login instead
+      suEls.otpError.textContent = 'Account already exists. Please log in instead.';
+    } else if (data.is_new_user){
+      suOtpVerified = true;
+      suEls.detailsSection.classList.remove('hidden');
+      showToast('Aadhaar verified. Please complete your details.');
+    } else {
+      suEls.otpError.textContent = data.message || 'Invalid or expired OTP.';
+    }
+  } catch (err){
+    suEls.otpError.textContent = 'Could not reach the server.';
+  }
+});
+
+document.getElementById('signupForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!suOtpVerified) return;
+  suEls.submitError.textContent = '';
+
+  const payload = {
+    aadhaar_number: suState.aadhaarRaw,
+    name: document.getElementById('suName').value,
+    dob: document.getElementById('suDob').value,
+    phone: document.getElementById('suPhone').value,
+    email: document.getElementById('suEmail').value,
+    address_line1: document.getElementById('suAddress').value,
+    district: document.getElementById('suDistrict').value,
+    state: document.getElementById('suState').value,
+    pincode: document.getElementById('suPincode').value,
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.success){
+      localStorage.setItem('session_token', data.session_token);
+      document.getElementById('signupForm').classList.add('hidden');
+      showProfile(data.citizen_profile);
+      showToast(data.message);
+    } else {
+      suEls.submitError.textContent = data.message || 'Could not create account.';
+    }
+  } catch (err){
+    suEls.submitError.textContent = 'Could not reach the server.';
+  }
+});
+</script>
+</body>
+</html>
