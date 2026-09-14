@@ -1,0 +1,186 @@
+/* High-Precision Kinetic & Scroll Animation Engine for InterOp Portal */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* 1. Cinematic Landing Page Entrance Animation (triggered when switching pages) */
+@keyframes landingPageReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.985);
+    filter: blur(8px);
+  }
+  50% {
+    opacity: 0.85;
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.animate-page-reveal {
+  animation: landingPageReveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity, filter;
+}
+
+/* 2. Continuous Living Background Animation (Ken Burns Breathing & Pan) */
+@keyframes kenBurnsZoom {
+  0% {
+    transform: scale(1.02) translate(0%, 0%);
+  }
+  50% {
+    transform: scale(1.08) translate(-1.2%, -0.8%);
+  }
+  100% {
+    transform: scale(1.04) translate(1.2%, 0.6%);
+  }
+}
+
+.animate-ken-burns {
+  animation: kenBurnsZoom 22s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/* Atmospheric Sun Rays / Light Beam Drift */
+@keyframes beamDrift {
+  0% {
+    opacity: 0.25;
+    transform: rotate(-12deg) translateY(-10px) scale(0.98);
+  }
+  50% {
+    opacity: 0.55;
+    transform: rotate(-10deg) translateY(0px) scale(1.03);
+  }
+  100% {
+    opacity: 0.3;
+    transform: rotate(-13deg) translateY(8px) scale(1);
+  }
+}
+
+.animate-beam-drift {
+  animation: beamDrift 9s ease-in-out infinite alternate;
+}
+
+/* 3. Base Scroll Reveal States */
+.scroll-reveal {
+  opacity: 0;
+  transform: translate3d(0, 26px, 0) scale(0.985);
+  filter: blur(4px);
+  transition: 
+    opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform, filter;
+}
+
+.scroll-reveal.is-revealed {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  filter: blur(0);
+}
+
+/* 4. Scroll-Up Dynamic Kinetic Wave */
+.scroll-up-wave {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.is-scrolling-up .scroll-up-wave {
+  transform: translate3d(0, -6px, 0);
+  box-shadow: 0 18px 40px -10px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(249, 115, 22, 0.32);
+}
+
+/* Stagger Delays for Cascade Entrances */
+.stagger-1 { transition-delay: 40ms; animation-delay: 40ms; }
+.stagger-2 { transition-delay: 90ms; animation-delay: 90ms; }
+.stagger-3 { transition-delay: 150ms; animation-delay: 150ms; }
+.stagger-4 { transition-delay: 210ms; animation-delay: 210ms; }
+.stagger-5 { transition-delay: 270ms; animation-delay: 270ms; }
+.stagger-6 { transition-delay: 330ms; animation-delay: 330ms; }
+
+/* 5. Interactive Precision Cards with Magnetic Glow */
+.interactive-card {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease;
+  will-change: transform, box-shadow;
+}
+
+.interactive-card:hover {
+  transform: translateY(-4px) scale(1.012);
+  box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.5),
+              0 0 0 1px rgba(249, 115, 22, 0.45),
+              0 0 24px -2px rgba(249, 115, 22, 0.22);
+}
+
+/* 6. Shimmer Highlight */
+@keyframes shimmerPass {
+  0% {
+    background-position: -250% 0;
+  }
+  100% {
+    background-position: 250% 0;
+  }
+}
+
+.shimmer-badge {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmerPass 2.8s infinite;
+}
+
+/* 7. Spring Modal Entry */
+@keyframes modalSpringIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.01) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-modal-spring {
+  animation: modalSpringIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 8. Subtle Floating Ambient Animation */
+@keyframes subtleFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.float-subtle {
+  animation: subtleFloat 4s ease-in-out infinite;
+}
+
+/* 9. Scroll Progress Bar at the top of the viewport */
+.scroll-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2.5px;
+  background: linear-gradient(90deg, #ea580c, #f97316, #fbbf24);
+  z-index: 100;
+  transition: width 0.1s ease-out;
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.9);
+}
