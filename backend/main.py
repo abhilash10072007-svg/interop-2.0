@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from routers.consent import router as consent_router
 from routers.auth import router as auth_router
-
+from routers.applications import router as applications_router
 app = FastAPI(title="GovConnect Auth Service")
-
+app.include_router(consent_router)
+app.include_router(applications_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
