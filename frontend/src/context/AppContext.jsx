@@ -13,7 +13,12 @@ import { api } from '../services/api';
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-  // Navigation states: 'dashboard', 'services', 'apply', 'applications', 'tracking', 'consent', 'notifications', 'profile'
+  // Portal & Role Switching (Citizen, Officer, Admin) - No Auth Gate
+  const [currentPortal, setCurrentPortal] = useState('citizen'); // 'citizen' | 'officer' | 'admin'
+  const [citizenId, setCitizenId] = useState('C001');
+  const [officerId, setOfficerId] = useState('U002');
+
+  // Navigation states
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -24,128 +29,274 @@ export const AppProvider = ({ children }) => {
   const [isBackendConnected, setIsBackendConnected] = useState(false);
   const [backendStatus, setBackendStatus] = useState('checking'); // 'checking' | 'connected' | 'offline'
 
-  // Auth State (true by default to display dashboard directly, can toggle to login/otp)
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const [authView, setAuthView] = useState('login'); // 'login' or 'otp'
-  const [authMethod, setAuthMethod] = useState('mobile'); // 'mobile', 'aadhaar', 'email'
-  const [authCredential, setAuthCredential] = useState('+91 98765 43210');
+  // Live Backend Data States
+  const [unifiedData, setUnifiedData] = useState(null);
+  const [citizenDashboardData, setCitizenDashboardData] = useState(null);
+  const [reconciliationData, setReconciliationData] = useState(null);
+  const [eligibilityData, setEligibilityData] = useState(null);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [adminDashboardData, setAdminDashboardData] = useState(null);
+  const [healthData, setHealthData] = useState(null);
 
-  // User Profile
+  // User Profile (auto-populated from FastAPI / Supabase)
   const [user, setUser] = useState({
-    name: 'Arjun Kumar',
-    citizenId: 'CZN-2025-00123',
-    email: 'arjun.kumar@email.com',
+    name: 'Gokul (C001)',
+    citizenId: 'C001',
+    email: 'gokul@interop.gov.in',
     mobile: '+91 98765 43210',
-    dob: '12-08-1996',
+    dob: '2007-05-04',
     gender: 'Male',
     aadhaarNumber: 'XXXX-XXXX-4021',
-    address: 'No. 12, MG Road, Coimbatore, Tamil Nadu - 641001',
-    initials: 'AK'
+    address: 'Coimbatore, Tamil Nadu',
+    initials: 'G'
   });
 
-  // Dynamic state arrays
+  // Services & Categories
   const [services] = useState(INITIAL_SERVICES);
   const [categories] = useState(SERVICE_CATEGORIES);
+
+  // Applications, Notifications, Consents
   const [applications, setApplications] = useState(INITIAL_APPLICATIONS);
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
   const [consents, setConsents] = useState(INITIAL_CONSENTS);
   const [consentHistory, setConsentHistory] = useState(CONSENT_HISTORY);
 
-  // Modal States
+  // Modals & UI Selection
   const [selectedServiceModal, setSelectedServiceModal] = useState(null);
   const [selectedApplicationDetails, setSelectedApplicationDetails] = useState(null);
   const [isAadhaarModalOpen, setIsAadhaarModalOpen] = useState(false);
-
-  // Toast System
   const [toast, setToast] = useState(null);
 
-  const showToast = (message, type = 'success', title = '') => {
+  const showToast = useCallback((message, type = 'success', title = '') => {
     setToast({ message, type, title });
     setTimeout(() => {
       setToast(null);
-    }, 4000);
-  };
+    }, 4500);
+  }, []);
 
-  const triggerConfetti = () => {
+  const triggerConfetti = useCallback(() => {
     confetti({
-      particleCount: 110,
-      spread: 75,
+      particleCount: 100,
+      spread: 70,
       origin: { y: 0.6 }
+    });
+  }, []);
+
+  // Helper to map backend applications to frontend structure
+  const mapBackendApps = (apps) => {
+    if (!Array.isArray(apps)) return [];
+    return apps.map((app, idx) => {
+      const rawStatus = (app.application_status || 'SUBMITTED').toUpperCase();
+      let statusLabel = 'In Progress';
+      let currentStep = 'Under Review';
+
+      if (rawStatus === 'APPROVED') {
+        statusLabel = 'Approved';
+        currentStep = 'Digital Delivery';
+      } else if (rawStatus === 'REJECTED') {
+        statusLabel = 'Rejected';
+        currentStep = 'Rejected by Reviewer';
+      } else if (rawStatus === 'SUBMITTED') {
+        statusLabel = 'In Progress';
+        currentStep = 'Submitted & Queued';
+      } else if (rawStatus === 'UNDER_REVIEW') {
+        statusLabel = 'In Progress';
+        currentStep = 'Department Officer Review';
+      }
+
+      return {
+        id: app.application_id || `APP-${idx + 1}`,
+        rawStatus: rawStatus,
+        serviceName: app.scheme_name || 'Education Scholarship',
+        serviceCategory: 'Social Welfare & Education',
+        appliedOn: app.submitted_on || 'Today',
+        status: statusLabel,
+        currentStep: currentStep,
+        department: 'Welfare Department',
+        applicantName: app.applicant_name || 'Citizen',
+        applicantRef: app.applicant_ref || citizenId,
+        birthDate: app.birth_date || '--',
+        riskScore: 'Low (0.02)',
+        ocrDetails: { nameMatch: '100%', faceMatch: '98.5%' },
+        updatedAt: 'Recently',
+        steps: [
+          { name: 'Application Submitted', status: 'completed', date: app.submitted_on || 'Day 1' },
+          { 
+            name: 'Document & Consent Verification', 
+            status: rawStatus !== 'SUBMITTED' ? 'completed' : 'current', 
+            date: rawStatus !== 'SUBMITTED' ? 'Verified' : 'In Progress' 
+          },
+          { 
+            name: 'Department Officer Approval', 
+            status: rawStatus === 'APPROVED' ? 'completed' : rawStatus === 'REJECTED' ? 'rejected' : rawStatus === 'UNDER_REVIEW' ? 'current' : 'pending', 
+            date: rawStatus === 'APPROVED' ? 'Approved by U002' : rawStatus === 'REJECTED' ? 'Rejected' : rawStatus === 'UNDER_REVIEW' ? 'Reviewing' : '--' 
+          },
+          { 
+            name: 'Digital Certificate / Scheme Issuance', 
+            status: rawStatus === 'APPROVED' ? 'completed' : 'pending', 
+            date: rawStatus === 'APPROVED' ? 'Issued' : '--' 
+          }
+        ]
+      };
     });
   };
 
-  // Sync with FastAPI Backend
-  const checkBackendConnectivity = useCallback(async () => {
+  // Main Data Refresh function from FastAPI backend
+  const refreshBackendData = useCallback(async (targetCitizenId = citizenId) => {
     try {
       const health = await api.checkBackendHealth();
-      if (health.online) {
-        setIsBackendConnected(true);
-        setBackendStatus('connected');
-
-        // Attempt to fetch live citizen dashboard if available
-        try {
-          const dash = await api.getCitizenDashboard(user.citizenId);
-          if (dash) {
-            if (dash.citizen) {
-              setUser(prev => ({
-                ...prev,
-                name: dash.citizen.name || prev.name,
-                dob: dash.citizen.dob || prev.dob,
-                address: dash.citizen.address || prev.address,
-                initials: (dash.citizen.name || prev.name).split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-              }));
-            }
-            if (Array.isArray(dash.applications) && dash.applications.length > 0) {
-              const mapped = dash.applications.map(app => ({
-                id: app.application_id,
-                serviceName: app.scheme_name,
-                serviceCategory: 'Social Welfare',
-                appliedOn: app.submitted_on,
-                status: app.application_status === 'APPROVED' ? 'Approved' : app.application_status === 'REJECTED' ? 'Rejected' : 'In Progress',
-                currentStep: app.application_status === 'SUBMITTED' ? 'Verification' : app.application_status,
-                department: 'Welfare Department',
-                updatedAt: 'Recently',
-                steps: [
-                  { name: 'Application Submitted', status: 'completed', date: app.submitted_on },
-                  { name: 'Document Verification', status: app.application_status !== 'SUBMITTED' ? 'completed' : 'current', date: '--' },
-                  { name: 'Department Officer Approval', status: app.application_status === 'APPROVED' ? 'completed' : 'pending', date: '--' },
-                  { name: 'Digital Delivery', status: app.application_status === 'APPROVED' ? 'completed' : 'pending', date: '--' }
-                ]
-              }));
-              setApplications(mapped);
-            }
-            if (Array.isArray(dash.notifications) && dash.notifications.length > 0) {
-              const mappedNotifs = dash.notifications.map(n => ({
-                id: n.notification_id,
-                title: (n.event_type || 'Update').replace(/_/g, ' '),
-                message: n.message,
-                time: 'Just now',
-                type: 'system',
-                read: n.read_status === 'READ',
-                category: 'update'
-              }));
-              setNotifications(mappedNotifs);
-            }
-          }
-        } catch (e) {
-          console.warn('Citizen dashboard data sync fallback to local mock:', e);
-        }
-      } else {
+      if (!health.online) {
         setIsBackendConnected(false);
         setBackendStatus('offline');
+        return;
       }
-    } catch {
+
+      setIsBackendConnected(true);
+      setBackendStatus('connected');
+
+      // 1. Fetch Unified Citizen Record
+      try {
+        const unifiedRes = await api.getCitizenUnified(targetCitizenId);
+        if (unifiedRes && unifiedRes.unified_citizen_record) {
+          setUnifiedData(unifiedRes.unified_citizen_record);
+          const c = unifiedRes.unified_citizen_record.citizen;
+          if (c) {
+            setUser(prev => ({
+              ...prev,
+              name: c.name || `Citizen (${targetCitizenId})`,
+              citizenId: targetCitizenId,
+              dob: c.dob || prev.dob,
+              gender: c.gender || prev.gender,
+              address: c.address || prev.address,
+              initials: (c.name || 'C').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+            }));
+          }
+        }
+      } catch (err) {
+        console.warn('Unified record fetch notice:', err.message);
+      }
+
+      // 2. Fetch Dashboard & Applications
+      try {
+        const dashRes = await api.getCitizenDashboard(targetCitizenId);
+        if (dashRes) {
+          setCitizenDashboardData(dashRes);
+          if (Array.isArray(dashRes.applications) && dashRes.applications.length > 0) {
+            setApplications(mapBackendApps(dashRes.applications));
+          } else {
+            // Check direct applications endpoint
+            const appsRes = await api.getCitizenApplications(targetCitizenId);
+            if (appsRes && Array.isArray(appsRes.applications) && appsRes.applications.length > 0) {
+              setApplications(mapBackendApps(appsRes.applications));
+            }
+          }
+
+          if (Array.isArray(dashRes.notifications) && dashRes.notifications.length > 0) {
+            const mappedNotifs = dashRes.notifications.map(n => ({
+              id: n.notification_id || `NOT-${Math.random()}`,
+              title: (n.event_type || 'Update').replace(/_/g, ' '),
+              message: n.message,
+              time: n.created_at ? new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent',
+              type: n.event_type?.includes('APPROVED') ? 'success' : n.event_type?.includes('REJECTED') ? 'warning' : 'system',
+              read: n.read_status === 'READ',
+              category: 'update'
+            }));
+            setNotifications(mappedNotifs);
+          }
+        }
+      } catch (err) {
+        console.warn('Dashboard fetch notice:', err.message);
+      }
+
+      // 3. Fetch Reconciliation Data (DOB conflict detection)
+      try {
+        const reconRes = await api.getReconciliation(targetCitizenId);
+        if (reconRes && reconRes.reconciliation_report) {
+          setReconciliationData(reconRes.reconciliation_report);
+        }
+      } catch (err) {
+        console.warn('Reconciliation fetch notice:', err.message);
+      }
+
+      // 4. Check Eligibility for Education Scholarship
+      try {
+        const eligRes = await api.checkEligibility(targetCitizenId, 'Education Scholarship');
+        if (eligRes) {
+          setEligibilityData(eligRes);
+        }
+      } catch (err) {
+        console.warn('Eligibility fetch notice:', err.message);
+      }
+
+      // 5. Fetch Audit Logs
+      try {
+        const auditRes = await api.getAuditLogs(targetCitizenId);
+        if (auditRes && Array.isArray(auditRes.audit_logs)) {
+          setAuditLogs(auditRes.audit_logs);
+          if (auditRes.audit_logs.length > 0) {
+            const mappedHistory = auditRes.audit_logs.map((log, idx) => ({
+              id: log.log_id || `LOG-${idx}`,
+              action: (log.action || 'Data Access').replace(/_/g, ' '),
+              department: log.data_provider || log.target_table || 'GovSync InterOp',
+              date: log.timestamp ? new Date(log.timestamp).toLocaleString() : 'Recent',
+              status: 'Verified'
+            }));
+            setConsentHistory(mappedHistory);
+          }
+        }
+      } catch (err) {
+        console.warn('Audit logs fetch notice:', err.message);
+      }
+
+      // 6. Fetch Admin Dashboard & Health
+      try {
+        const [admDash, hltDept] = await Promise.all([
+          api.getAdminDashboard().catch(() => null),
+          api.getHealthDepartments().catch(() => null)
+        ]);
+        if (admDash) setAdminDashboardData(admDash);
+        if (hltDept) setHealthData(hltDept);
+      } catch (err) {
+        console.warn('Admin stats fetch notice:', err.message);
+      }
+
+    } catch (err) {
+      console.warn('Backend sync failed:', err);
       setIsBackendConnected(false);
       setBackendStatus('offline');
     }
-  }, [user.citizenId]);
+  }, [citizenId]);
 
-  // Initial check on mount
+  // Periodic and initial sync
   useEffect(() => {
-    checkBackendConnectivity();
-    const interval = setInterval(checkBackendConnectivity, 20000);
-    return () => clearInterval(interval);
-  }, [checkBackendConnectivity]);
+    refreshBackendData(citizenId);
+    const timer = setInterval(() => {
+      refreshBackendData(citizenId);
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [refreshBackendData, citizenId]);
+
+  // Quick switch citizen handler
+  const handleSwitchCitizen = (newCitizenId) => {
+    const cleanId = (newCitizenId || '').trim().toUpperCase();
+    if (!cleanId) return;
+    setCitizenId(cleanId);
+    showToast(`Switched active citizen context to ${cleanId}`, 'info', 'Citizen Switched');
+    refreshBackendData(cleanId);
+  };
+
+  // Grant Consent handler
+  const handleGrantConsent = async (dataProvider, dataType, purpose) => {
+    try {
+      const res = await api.grantConsent(citizenId, dataProvider, dataType, purpose);
+      showToast(`Consent granted for ${dataProvider} (${dataType})`, 'success', 'Consent Granted');
+      refreshBackendData(citizenId);
+      return res;
+    } catch (err) {
+      showToast(`Failed to grant consent: ${err.message}`, 'error', 'Error');
+      throw err;
+    }
+  };
 
   // Toggle consent switch & propagate to FastAPI
   const handleToggleConsent = async (id) => {
@@ -154,12 +305,14 @@ export const AppProvider = ({ children }) => {
 
     if (isBackendConnected && target) {
       try {
-        await api.grantConsent(
-          user.citizenId,
-          target.department || target.name,
-          target.category || 'Identity',
-          'Citizen Services Verification'
-        );
+        if (nextState) {
+          await api.grantConsent(
+            citizenId,
+            target.department || 'Education Department',
+            target.category || 'Education',
+            'Education Scholarship'
+          );
+        }
       } catch (err) {
         console.warn('Consent sync to backend error:', err);
       }
@@ -168,7 +321,7 @@ export const AppProvider = ({ children }) => {
     setConsents(prev => prev.map(item => {
       if (item.id === id) {
         showToast(
-          item.name + ' is now ' + (nextState ? 'Active' : 'Paused') + '.',
+          `${item.name} is now ${nextState ? 'Active' : 'Paused'}.`,
           nextState ? 'success' : 'info',
           'Consent Updated'
         );
@@ -178,37 +331,57 @@ export const AppProvider = ({ children }) => {
     }));
   };
 
-  // Create new application with backend integration
+  // Submit Application with full backend consent + eligibility validation
   const handleCreateApplication = async (formData) => {
-    const serviceName = formData.serviceName || 'Driving License';
-    const tempId = 'APP-' + Math.floor(10000 + Math.random() * 90000);
+    const schemeName = formData.serviceName || 'Education Scholarship';
 
     if (isBackendConnected) {
       try {
-        const res = await api.submitApplication(user.citizenId, serviceName);
+        // Attempt submit
+        let res = await api.submitApplication(citizenId, schemeName);
+
+        // If consent is missing, offer auto-granting consent for seamless demo experience!
+        if (res && !res.application_submitted && res.message?.toLowerCase().includes('consent')) {
+          showToast('Granting required Education & Income consents automatically...', 'info', 'Auto-Granting Consent');
+          await api.grantConsent(citizenId, 'Education Department', 'Education', schemeName);
+          await api.grantConsent(citizenId, 'Income Department', 'Income', schemeName);
+          
+          // Re-attempt submit
+          res = await api.submitApplication(citizenId, schemeName);
+        }
+
         if (res && res.application_submitted) {
-          showToast('Application ' + (res.application?.application_id || tempId) + ' submitted to FastAPI!', 'success', 'Submitted');
-          checkBackendConnectivity();
+          showToast(`Application ${res.application?.application_id || 'submitted'} created successfully!`, 'success', 'Application Submitted');
           triggerConfetti();
+          await refreshBackendData(citizenId);
           setActiveTab('tracking');
-          return;
+          return res;
         } else if (res && !res.application_submitted) {
-          showToast(res.message || 'Consent or eligibility check requirement not met', 'warning', 'Notice');
+          showToast(res.message || 'Eligibility check failed', 'warning', 'Notice');
+          return res;
         }
       } catch (err) {
-        console.warn('Backend submit error, recording locally:', err);
+        console.warn('Backend application submit error:', err);
+        showToast(`Backend submission error: ${err.message}`, 'error', 'Error');
       }
     }
 
-    // Local optimistic update
+    // Local fallback
+    const tempId = 'APP-' + Math.floor(10000 + Math.random() * 90000);
     const newApp = {
       id: tempId,
-      serviceName: serviceName,
-      serviceCategory: 'Transport & Vehicles',
+      rawStatus: 'SUBMITTED',
+      serviceName: schemeName,
+      serviceCategory: 'Social Welfare & Education',
       appliedOn: 'Today',
-      currentStep: 'Verification',
+      currentStep: 'Submitted & Queued',
       status: 'In Progress',
-      department: 'Transport Department',
+      department: 'Welfare Department',
+      applicantName: user.name,
+      applicantRef: citizenId,
+      birthDate: user.dob,
+      riskScore: 'Low (0.02)',
+      ocrDetails: { nameMatch: '100%', faceMatch: '98.5%' },
       updatedAt: 'Just now',
       steps: [
         { name: 'Application Submitted', status: 'completed', date: 'Just now' },
@@ -219,9 +392,65 @@ export const AppProvider = ({ children }) => {
     };
 
     setApplications(prev => [newApp, ...prev]);
-    showToast('Application ' + tempId + ' submitted successfully!', 'success', 'Submitted');
+    showToast(`Application ${tempId} recorded locally!`, 'success', 'Submitted');
     triggerConfetti();
     setActiveTab('tracking');
+  };
+
+  // Officer Status Update Workflow
+  const handleOfficerUpdateStatus = async (applicationId, newStatus) => {
+    if (!isBackendConnected) {
+      setApplications(prev => prev.map(a => {
+        if (a.id === applicationId) {
+          return {
+            ...a,
+            rawStatus: newStatus,
+            status: newStatus === 'APPROVED' ? 'Approved' : newStatus === 'REJECTED' ? 'Rejected' : 'In Progress'
+          };
+        }
+        return a;
+      }));
+      showToast(`Application ${applicationId} marked as ${newStatus} (Local)`, 'success', 'Status Updated');
+      return;
+    }
+
+    try {
+      const res = await api.updateApplicationStatus(applicationId, officerId, newStatus);
+      if (res && res.status_updated) {
+        showToast(`Application ${applicationId} status updated to ${newStatus}`, 'success', 'Status Updated');
+        triggerConfetti();
+        await refreshBackendData(citizenId);
+      } else {
+        showToast(res.message || 'Status update transition failed', 'warning', 'Workflow Transition');
+      }
+    } catch (err) {
+      showToast(`Officer update error: ${err.message}`, 'error', 'Error');
+    }
+  };
+
+  const handleOfficerApproveApp = async (applicationId) => {
+    // If current status is SUBMITTED, backend requires transition to UNDER_REVIEW first, then APPROVED
+    const targetApp = applications.find(a => a.id === applicationId);
+    if (targetApp && targetApp.rawStatus === 'SUBMITTED') {
+      try {
+        await api.updateApplicationStatus(applicationId, officerId, 'UNDER_REVIEW');
+      } catch (e) {
+        console.warn('Intermediate transition notice:', e);
+      }
+    }
+    await handleOfficerUpdateStatus(applicationId, 'APPROVED');
+  };
+
+  const handleOfficerRejectApp = async (applicationId) => {
+    const targetApp = applications.find(a => a.id === applicationId);
+    if (targetApp && targetApp.rawStatus === 'SUBMITTED') {
+      try {
+        await api.updateApplicationStatus(applicationId, officerId, 'UNDER_REVIEW');
+      } catch (e) {
+        console.warn('Intermediate transition notice:', e);
+      }
+    }
+    await handleOfficerUpdateStatus(applicationId, 'REJECTED');
   };
 
   const handleMarkNotificationRead = (id) => {
@@ -233,14 +462,18 @@ export const AppProvider = ({ children }) => {
     showToast('All notifications marked as read', 'info');
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setAuthView('login');
-    showToast('You have been logged out securely.', 'info');
-  };
-
   return (
     <AppContext.Provider value={{
+      // Prototype Portal & Role Switching
+      currentPortal,
+      setCurrentPortal,
+      citizenId,
+      setCitizenId,
+      handleSwitchCitizen,
+      officerId,
+      setOfficerId,
+
+      // Navigation & Layout
       activeTab,
       setActiveTab,
       searchQuery,
@@ -251,17 +484,20 @@ export const AppProvider = ({ children }) => {
       setIsSidebarOpen,
       isSidebarPinned,
       setIsSidebarPinned,
+
+      // Live Backend State
       isBackendConnected,
       backendStatus,
-      checkBackendConnectivity,
-      isAuthenticated,
-      setIsAuthenticated,
-      authView,
-      setAuthView,
-      authMethod,
-      setAuthMethod,
-      authCredential,
-      setAuthCredential,
+      refreshBackendData,
+      unifiedData,
+      citizenDashboardData,
+      reconciliationData,
+      eligibilityData,
+      auditLogs,
+      adminDashboardData,
+      healthData,
+
+      // User & Entity State
       user,
       setUser,
       services,
@@ -270,6 +506,8 @@ export const AppProvider = ({ children }) => {
       notifications,
       consents,
       consentHistory,
+
+      // Modal & Notification State
       selectedServiceModal,
       setSelectedServiceModal,
       selectedApplicationDetails,
@@ -279,11 +517,16 @@ export const AppProvider = ({ children }) => {
       toast,
       showToast,
       triggerConfetti,
+
+      // Business Logic Actions
       handleToggleConsent,
+      handleGrantConsent,
       handleCreateApplication,
+      handleOfficerUpdateStatus,
+      handleOfficerApproveApp,
+      handleOfficerRejectApp,
       handleMarkNotificationRead,
-      handleMarkAllNotificationsRead,
-      handleLogout
+      handleMarkAllNotificationsRead
     }}>
       {children}
     </AppContext.Provider>

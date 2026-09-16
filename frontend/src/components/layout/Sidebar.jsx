@@ -8,10 +8,14 @@ import {
   ShieldCheck, 
   Bell, 
   User, 
-  LogOut,
   ChevronRight,
   X,
-  Pin
+  Pin,
+  GitCompare,
+  UserCheck,
+  ShieldAlert,
+  BarChart3,
+  Server
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -20,26 +24,53 @@ export const Sidebar = () => {
     activeTab, 
     setActiveTab, 
     notifications, 
-    handleLogout, 
     isSidebarOpen,
     setIsSidebarOpen,
     isSidebarPinned,
     setIsSidebarPinned,
-    user
+    user,
+    currentPortal,
+    setCurrentPortal,
+    citizenId,
+    officerId
   } = useApp();
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'services', label: 'My Services', icon: Layers },
-    { id: 'apply', label: 'Apply for Services', icon: FilePlus },
-    { id: 'applications', label: 'My Applications', icon: FolderCheck },
-    { id: 'tracking', label: 'Application Tracking', icon: Compass },
-    { id: 'consent', label: 'Consent Management', icon: ShieldCheck },
-    { id: 'notifications', label: 'Notifications', icon: Bell, badge: unreadCount },
-    { id: 'profile', label: 'Profile', icon: User }
-  ];
+  // Portal-aware navigation items
+  const getNavItems = () => {
+    if (currentPortal === 'officer') {
+      return [
+        { id: 'review-queue', label: 'Review Queue', icon: ShieldAlert, badge: 0 },
+        { id: 'unified', label: 'Citizen Dossier', icon: UserCheck },
+        { id: 'reconciliation', label: 'Reconciliation Log', icon: GitCompare }
+      ];
+    }
+
+    if (currentPortal === 'admin') {
+      return [
+        { id: 'analytics', label: 'Platform Telemetry', icon: BarChart3 },
+        { id: 'reconciliation', label: 'Reconciliation Audits', icon: GitCompare },
+        { id: 'unified', label: 'Citizen Data Mesh', icon: UserCheck }
+      ];
+    }
+
+    // Default: Citizen Portal
+    return [
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'unified', label: 'Unified Citizen Record', icon: UserCheck },
+      { id: 'reconciliation', label: 'Reconciliation Audit', icon: GitCompare, badge: 1 },
+      { id: 'services', label: 'My Services', icon: Layers },
+      { id: 'apply', label: 'Apply for Services', icon: FilePlus },
+      { id: 'applications', label: 'My Applications', icon: FolderCheck },
+      { id: 'tracking', label: 'Application Tracking', icon: Compass },
+      { id: 'consent', label: 'Consent Management', icon: ShieldCheck },
+      { id: 'notifications', label: 'Notifications', icon: Bell, badge: unreadCount },
+      { id: 'profile', label: 'Profile', icon: User }
+    ];
+  };
+
+  const navItems = getNavItems();
 
   const handleNavClick = (id) => {
     setActiveTab(id);
@@ -81,7 +112,9 @@ export const Sidebar = () => {
               <div className="flex items-center gap-1">
                 <span className="text-xl font-bold tracking-tight text-slate-900 font-sans">Inter<span className="text-orange-500">Op</span></span>
               </div>
-              <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-400 block -mt-0.5">Citizen Gateway</span>
+              <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-400 block -mt-0.5">
+                {currentPortal === 'officer' ? 'Official Reviewer' : currentPortal === 'admin' ? 'System Administration' : 'Citizen Gateway'}
+              </span>
             </div>
           </div>
 
@@ -109,6 +142,30 @@ export const Sidebar = () => {
           </div>
         </div>
 
+        {/* Portal Switcher Quick Strip */}
+        <div className="p-3 border-b border-slate-100 bg-slate-50/40">
+          <div className="grid grid-cols-3 gap-1 p-1 bg-slate-200/60 rounded-xl text-center text-[11px] font-bold">
+            <button
+              onClick={() => { setCurrentPortal('citizen'); setActiveTab('dashboard'); }}
+              className={`py-1 rounded-lg transition-all ${currentPortal === 'citizen' ? 'bg-white text-orange-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              Citizen
+            </button>
+            <button
+              onClick={() => { setCurrentPortal('officer'); setActiveTab('review-queue'); }}
+              className={`py-1 rounded-lg transition-all ${currentPortal === 'officer' ? 'bg-amber-500 text-slate-950 shadow-2xs font-black' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              Officer
+            </button>
+            <button
+              onClick={() => { setCurrentPortal('admin'); setActiveTab('analytics'); }}
+              className={`py-1 rounded-lg transition-all ${currentPortal === 'admin' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              Admin
+            </button>
+          </div>
+        </div>
+
         {/* Navigation Items */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
@@ -120,7 +177,7 @@ export const Sidebar = () => {
                 onClick={() => handleNavClick(item.id)}
                 className={`btn-press w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all group ${
                   isActive
-                    ? 'bg-orange-50 text-orange-600 border border-orange-200/80 shadow-xs'
+                    ? 'bg-orange-50 text-orange-600 border border-orange-200/80 shadow-xs font-bold'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 border border-transparent'
                 }`}
               >
@@ -141,25 +198,22 @@ export const Sidebar = () => {
           })}
         </nav>
 
-        {/* User Footer Profile & Sign Out */}
+        {/* Bottom Context Pill */}
         <div className="p-3 border-t border-slate-100 bg-slate-50/60">
           <div className="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-amber-400 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
-                {user.initials}
+                {currentPortal === 'officer' ? 'OF' : currentPortal === 'admin' ? 'AD' : user.initials}
               </div>
               <div className="truncate">
-                <p className="text-xs font-bold text-slate-800 truncate">{user.name}</p>
-                <p className="text-[10px] text-slate-400 font-mono truncate">{user.citizenId}</p>
+                <p className="text-xs font-bold text-slate-800 truncate">
+                  {currentPortal === 'officer' ? 'Officer Mode' : currentPortal === 'admin' ? 'Administrator' : user.name}
+                </p>
+                <p className="text-[10px] text-slate-400 font-mono truncate">
+                  {currentPortal === 'officer' ? officerId : currentPortal === 'admin' ? 'ROOT' : citizenId}
+                </p>
               </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="btn-press p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-              title="Sign out"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
           </div>
         </div>
       </aside>

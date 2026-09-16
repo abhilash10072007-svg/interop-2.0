@@ -3,7 +3,11 @@ import { AppProvider, useApp } from './context/AppContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { TopNav } from './components/layout/TopNav';
 import { MobileNav } from './components/layout/MobileNav';
+
+// Citizen Views
 import { Dashboard } from './components/citizen/Dashboard';
+import { UnifiedCitizenRecord } from './components/citizen/UnifiedCitizenRecord';
+import { ReconciliationView } from './components/citizen/ReconciliationView';
 import { Services } from './components/citizen/Services';
 import { ApplicationForm } from './components/citizen/ApplicationForm';
 import { ApplicationTracking } from './components/citizen/ApplicationTracking';
@@ -12,23 +16,57 @@ import { NotificationsPage } from './components/citizen/NotificationsPage';
 import { Profile } from './components/citizen/Profile';
 import { ServiceDetailsModal } from './components/citizen/ServiceDetailsModal';
 import { AadhaarLinkModal } from './components/citizen/AadhaarLinkModal';
-import { Login } from './components/auth/Login';
-import { OtpVerification } from './components/auth/OtpVerification';
+
+// Officer & Admin Views
+import { OfficerReviewQueue } from './components/official/OfficerReviewQueue';
+import { AdminAnalytics } from './components/admin/AdminAnalytics';
+
 import { ArrowUp } from 'lucide-react';
 import { Toast } from './components/common/Toast';
 import { useScrollAnimation } from './hooks/useScrollAnimation';
 
 const MainLayout = () => {
-  const { activeTab, isAuthenticated, authView, isSidebarPinned } = useApp();
+  const { activeTab, currentPortal, isSidebarPinned } = useApp();
   const { scrollProgress, isScrollingUp } = useScrollAnimation();
 
-  // If user is unauthenticated, render Auth Flow
-  if (!isAuthenticated) {
-    if (authView === 'otp') {
-      return <OtpVerification />;
+  // Render view based on active tab and portal
+  const renderContentView = () => {
+    // Shared views across portals
+    if (activeTab === 'unified') return <UnifiedCitizenRecord />;
+    if (activeTab === 'reconciliation') return <ReconciliationView />;
+
+    // Portal-specific default views
+    if (currentPortal === 'officer') {
+      if (activeTab === 'review-queue') return <OfficerReviewQueue />;
+      return <OfficerReviewQueue />;
     }
-    return <Login />;
-  }
+
+    if (currentPortal === 'admin') {
+      if (activeTab === 'analytics') return <AdminAnalytics />;
+      return <AdminAnalytics />;
+    }
+
+    // Citizen Portal Views
+    switch (activeTab) {
+      case 'dashboard':
+        return <Dashboard />;
+      case 'services':
+        return <Services />;
+      case 'apply':
+        return <ApplicationForm />;
+      case 'applications':
+      case 'tracking':
+        return <ApplicationTracking />;
+      case 'consent':
+        return <ConsentManagement />;
+      case 'notifications':
+        return <NotificationsPage />;
+      case 'profile':
+        return <Profile />;
+      default:
+        return <Dashboard />;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col font-sans selection:bg-orange-500 selection:text-white relative">
@@ -56,25 +94,18 @@ const MainLayout = () => {
         style={{ width: `${scrollProgress}%` }} 
       />
 
-      {/* Pop-up Sidebar (pops up when requested) */}
+      {/* Pop-up Sidebar */}
       <Sidebar />
 
-      {/* Main Content Area (full width by default, pops up on wish) */}
+      {/* Main Content Area */}
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 relative z-10 ${isSidebarPinned ? 'lg:pl-72' : 'pl-0'}`}>
         {/* Sticky Top Navbar */}
         <TopNav />
 
         {/* Dynamic Page Views with Landing Page Entrance Animation */}
         <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-7xl w-full mx-auto pb-20 lg:pb-12">
-          <div key={activeTab} className="animate-page-reveal w-full">
-            {activeTab === 'dashboard' && <Dashboard />}
-            {activeTab === 'services' && <Services />}
-            {activeTab === 'apply' && <ApplicationForm />}
-            {activeTab === 'applications' && <ApplicationTracking />}
-            {activeTab === 'tracking' && <ApplicationTracking />}
-            {activeTab === 'consent' && <ConsentManagement />}
-            {activeTab === 'notifications' && <NotificationsPage />}
-            {activeTab === 'profile' && <Profile />}
+          <div key={`${currentPortal}-${activeTab}`} className="animate-page-reveal w-full">
+            {renderContentView()}
           </div>
         </main>
       </div>
@@ -90,7 +121,7 @@ const MainLayout = () => {
         </button>
       )}
 
-      {/* Mobile Bottom Navigation (Screen 9) */}
+      {/* Mobile Bottom Navigation */}
       <MobileNav />
 
       {/* Global Modals & Notifications */}
@@ -101,12 +132,10 @@ const MainLayout = () => {
   );
 };
 
-function App() {
+export default function App() {
   return (
     <AppProvider>
       <MainLayout />
     </AppProvider>
   );
 }
-
-export default App;
