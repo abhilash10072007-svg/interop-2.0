@@ -184,3 +184,88 @@ html {
   transition: width 0.1s ease-out;
   box-shadow: 0 0 10px rgba(249, 115, 22, 0.9);
 }
+
+/* ==================================================
+   HALF-WHITE THEME & TACTILE MICRO-INTERACTION ENGINE
+   ================================================== */
+
+/* Tactile Micro-Interactions: Button Press */
+.btn-press {
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow;
+  user-select: none;
+}
+.btn-press:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 16px -2px rgba(249, 115, 22, 0.22);
+}
+.btn-press:active {
+  transform: scale(0.95) translateY(0);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* Professional Floating & Gliding Hero Animation */
+@keyframes livingGlide {
+  0% {
+    transform: scale(1.03) translate(0%, 0%) rotate(0deg);
+  }
+  33% {
+    transform: scale(1.08) translate(-1.8%, -1%) rotate(0.4deg);
+  }
+  66% {
+    transform: scale(1.05) translate(1.4%, -1.4%) rotate(-0.3deg);
+  }
+  100% {
+    transform: scale(1.03) translate(0%, 0%) rotate(0deg);
+  }
+}
+
+.animate-living-glide {
+  animation: livingGlide 24s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Converging Card Grid: Cards slide inward and upward together */
+@keyframes convergeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.96);
+    filter: blur(4px);
+  }
+  60% {
+    opacity: 0.9;
+    transform: translateY(-2px) scale(1.008);
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.animate-converge-grid {
+  animation: convergeIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity, filter;
+}
+
+.card-stagger-1 { animation-delay: 80ms; }
+.card-stagger-2 { animation-delay: 150ms; }
+.card-stagger-3 { animation-delay: 220ms; }
+.card-stagger-4 { animation-delay: 290ms; }
+.card-stagger-5 { animation-delay: 360ms; }
+.card-stagger-6 { animation-delay: 430ms; }
+
+/* Clean Half-White Aesthetic Card Styling */
+.light-card {
+  background-color: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.07), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.light-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(251, 146, 60, 0.5);
+  box-shadow: 0 16px 36px -6px rgba(249, 115, 22, 0.16), 0 6px 16px -2px rgba(15, 23, 42, 0.06);
+}

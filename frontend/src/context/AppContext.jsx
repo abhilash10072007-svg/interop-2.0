@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { 
   INITIAL_SERVICES, 
@@ -8,6 +8,7 @@ import {
   INITIAL_CONSENTS, 
   CONSENT_HISTORY 
 } from '../data/mockData';
+import { api } from '../services/api';
 
 const AppContext = createContext();
 
@@ -18,6 +19,10 @@ export const AppProvider = ({ children }) => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarPinned, setIsSidebarPinned] = useState(false);
+
+  // Backend Connectivity State
+  const [isBackendConnected, setIsBackendConnected] = useState(false);
+  const [backendStatus, setBackendStatus] = useState('checking'); // 'checking' | 'connected' | 'offline'
 
   // Auth State (true by default to display dashboard directly, can toggle to login/otp)
   const [isAuthenticated, setIsAuthenticated] = useState(true);
@@ -69,13 +74,101 @@ export const AppProvider = ({ children }) => {
     });
   };
 
-  // Toggle consent switch
-  const handleToggleConsent = (id) => {
+  // Sync with FastAPI Backend
+  const checkBackendConnectivity = useCallback(async () => {
+    try {
+      const health = await api.checkBackendHealth();
+      if (health.online) {
+        setIsBackendConnected(true);
+        setBackendStatus('connected');
+
+        // Attempt to fetch live citizen dashboard if available
+        try {
+          const dash = await api.getCitizenDashboard(user.citizenId);
+          if (dash) {
+            if (dash.citizen) {
+              setUser(prev => ({
+                ...prev,
+                name: dash.citizen.name || prev.name,
+                dob: dash.citizen.dob || prev.dob,
+                address: dash.citizen.address || prev.address,
+                initials: (dash.citizen.name || prev.name).split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+              }));
+            }
+            if (Array.isArray(dash.applications) && dash.applications.length > 0) {
+              const mapped = dash.applications.map(app => ({
+                id: app.application_id,
+                serviceName: app.scheme_name,
+                serviceCategory: 'Social Welfare',
+                appliedOn: app.submitted_on,
+                status: app.application_status === 'APPROVED' ? 'Approved' : app.application_status === 'REJECTED' ? 'Rejected' : 'In Progress',
+                currentStep: app.application_status === 'SUBMITTED' ? 'Verification' : app.application_status,
+                department: 'Welfare Department',
+                updatedAt: 'Recently',
+                steps: [
+                  { name: 'Application Submitted', status: 'completed', date: app.submitted_on },
+                  { name: 'Document Verification', status: app.application_status !== 'SUBMITTED' ? 'completed' : 'current', date: '--' },
+                  { name: 'Department Officer Approval', status: app.application_status === 'APPROVED' ? 'completed' : 'pending', date: '--' },
+                  { name: 'Digital Delivery', status: app.application_status === 'APPROVED' ? 'completed' : 'pending', date: '--' }
+                ]
+              }));
+              setApplications(mapped);
+            }
+            if (Array.isArray(dash.notifications) && dash.notifications.length > 0) {
+              const mappedNotifs = dash.notifications.map(n => ({
+                id: n.notification_id,
+                title: (n.event_type || 'Update').replace(/_/g, ' '),
+                message: n.message,
+                time: 'Just now',
+                type: 'system',
+                read: n.read_status === 'READ',
+                category: 'update'
+              }));
+              setNotifications(mappedNotifs);
+            }
+          }
+        } catch (e) {
+          console.warn('Citizen dashboard data sync fallback to local mock:', e);
+        }
+      } else {
+        setIsBackendConnected(false);
+        setBackendStatus('offline');
+      }
+    } catch {
+      setIsBackendConnected(false);
+      setBackendStatus('offline');
+    }
+  }, [user.citizenId]);
+
+  // Initial check on mount
+  useEffect(() => {
+    checkBackendConnectivity();
+    const interval = setInterval(checkBackendConnectivity, 20000);
+    return () => clearInterval(interval);
+  }, [checkBackendConnectivity]);
+
+  // Toggle consent switch & propagate to FastAPI
+  const handleToggleConsent = async (id) => {
+    const target = consents.find(item => item.id === id);
+    const nextState = target ? !target.enabled : false;
+
+    if (isBackendConnected && target) {
+      try {
+        await api.grantConsent(
+          user.citizenId,
+          target.department || target.name,
+          target.category || 'Identity',
+          'Citizen Services Verification'
+        );
+      } catch (err) {
+        console.warn('Consent sync to backend error:', err);
+      }
+    }
+
     setConsents(prev => prev.map(item => {
       if (item.id === id) {
-        const nextState = !item.enabled;
         showToast(
-          `${item.name} is now ${nextState ? 'Active' : 'Paused'}.`,
+          item.name + ' is now ' + (nextState ? 'Active' : 'Paused') + '.',
           nextState ? 'success' : 'info',
           'Consent Updated'
         );
@@ -85,12 +178,32 @@ export const AppProvider = ({ children }) => {
     }));
   };
 
-  // Create new application
-  const handleCreateApplication = (formData) => {
-    const newId = `DL-2025-${Math.floor(10000 + Math.random() * 90000)}`;
+  // Create new application with backend integration
+  const handleCreateApplication = async (formData) => {
+    const serviceName = formData.serviceName || 'Driving License';
+    const tempId = 'APP-' + Math.floor(10000 + Math.random() * 90000);
+
+    if (isBackendConnected) {
+      try {
+        const res = await api.submitApplication(user.citizenId, serviceName);
+        if (res && res.application_submitted) {
+          showToast('Application ' + (res.application?.application_id || tempId) + ' submitted to FastAPI!', 'success', 'Submitted');
+          checkBackendConnectivity();
+          triggerConfetti();
+          setActiveTab('tracking');
+          return;
+        } else if (res && !res.application_submitted) {
+          showToast(res.message || 'Consent or eligibility check requirement not met', 'warning', 'Notice');
+        }
+      } catch (err) {
+        console.warn('Backend submit error, recording locally:', err);
+      }
+    }
+
+    // Local optimistic update
     const newApp = {
-      id: newId,
-      serviceName: formData.serviceName || 'Driving License',
+      id: tempId,
+      serviceName: serviceName,
       serviceCategory: 'Transport & Vehicles',
       appliedOn: 'Today',
       currentStep: 'Verification',
@@ -106,7 +219,7 @@ export const AppProvider = ({ children }) => {
     };
 
     setApplications(prev => [newApp, ...prev]);
-    showToast(`Application ${newId} submitted successfully!`, 'success', 'Submitted');
+    showToast('Application ' + tempId + ' submitted successfully!', 'success', 'Submitted');
     triggerConfetti();
     setActiveTab('tracking');
   };
@@ -138,6 +251,9 @@ export const AppProvider = ({ children }) => {
       setIsSidebarOpen,
       isSidebarPinned,
       setIsSidebarPinned,
+      isBackendConnected,
+      backendStatus,
+      checkBackendConnectivity,
       isAuthenticated,
       setIsAuthenticated,
       authView,

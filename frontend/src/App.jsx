@@ -31,7 +31,25 @@ const MainLayout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#090b10] text-slate-100 flex flex-col font-sans selection:bg-orange-500 selection:text-white">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col font-sans selection:bg-orange-500 selection:text-white relative">
+      {/* Full-Screen Ambient Living Motion Graphics Background */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        {/* Animated Monument Backdrop (Continuous Living Motion) */}
+        <div 
+          className="absolute inset-0 opacity-[0.24] bg-cover bg-center pointer-events-none animate-living-glide"
+          style={{
+            backgroundImage: "url('https://images.unsplash.com/photo-1596176530529-78163a4f7af2?auto=format&fit=crop&w=1920&q=80')",
+            backgroundPosition: 'center 40%'
+          }}
+        />
+
+        {/* Ambient Drifting Golden Sun Rays */}
+        <div className="absolute -top-32 -right-20 w-[600px] h-[500px] bg-gradient-to-b from-orange-400/25 via-amber-300/15 to-transparent pointer-events-none filter blur-3xl animate-beam-drift" />
+
+        {/* Floating Soft Ambient Glow */}
+        <div className="absolute top-1/3 -left-20 w-[500px] h-[500px] bg-orange-400/10 rounded-full blur-3xl pointer-events-none float-subtle" />
+      </div>
+
       {/* Kinetic Scroll Progress Bar */}
       <div 
         className="scroll-progress-bar" 
@@ -42,7 +60,7 @@ const MainLayout = () => {
       <Sidebar />
 
       {/* Main Content Area (full width by default, pops up on wish) */}
-      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${isSidebarPinned ? 'lg:pl-72' : 'pl-0'}`}>
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 relative z-10 ${isSidebarPinned ? 'lg:pl-72' : 'pl-0'}`}>
         {/* Sticky Top Navbar */}
         <TopNav />
 

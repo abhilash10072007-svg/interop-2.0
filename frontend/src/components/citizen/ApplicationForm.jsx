@@ -8,8 +8,7 @@ import {
   UploadCloud, 
   FileText, 
   ShieldCheck, 
-  CheckCircle2, 
-  AlertCircle 
+  CheckCircle2 
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -62,22 +61,22 @@ export const ApplicationForm = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-12 animate-precise-up">
+    <div className="max-w-4xl mx-auto space-y-6 pb-12">
       {/* Service Header */}
-      <div className="flex items-center gap-4 p-5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl">
-        <div className="w-12 h-12 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center">
+      <div className="light-card flex items-center gap-4 p-5 rounded-2xl shadow-xs">
+        <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 border border-orange-200 flex items-center justify-center shadow-2xs">
           <Car className="w-6 h-6" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-white">Driving License</h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Apply for a new driving license or renew your existing one.
+          <h1 className="text-xl font-bold text-slate-900">Driving License Application</h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Ministry of Road Transport & Highways • Parivahan Interoperable Gateway
           </p>
         </div>
       </div>
 
       {/* Stepper Header */}
-      <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl overflow-x-auto">
+      <div className="light-card p-4 rounded-2xl shadow-xs overflow-x-auto">
         <div className="flex items-center justify-between min-w-[500px] px-4">
           {steps.map((step, idx) => {
             const isCompleted = currentStep > step.num;
@@ -85,30 +84,31 @@ export const ApplicationForm = () => {
 
             return (
               <React.Fragment key={step.num}>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <div
                     className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                       isCompleted
-                        ? 'bg-emerald-500 text-white'
+                        ? 'bg-emerald-500 text-white shadow-xs'
                         : isCurrent
-                        ? 'bg-orange-500 text-white shadow-md shadow-orange-500/40'
-                        : 'bg-slate-800 text-slate-400'
+                        ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30'
+                        : 'bg-slate-100 text-slate-400'
                     }`}
                   >
                     {isCompleted ? <Check className="w-4 h-4" /> : step.num}
                   </div>
                   <span
-                    className={`text-xs font-medium whitespace-nowrap ${
-                      isCurrent ? 'text-orange-400 font-semibold' : isCompleted ? 'text-slate-200' : 'text-slate-400'
+                    className={`text-xs font-semibold ${
+                      isCurrent ? 'text-slate-900 font-bold' : isCompleted ? 'text-emerald-700' : 'text-slate-400'
                     }`}
                   >
                     {step.title}
                   </span>
                 </div>
+
                 {idx < steps.length - 1 && (
                   <div
-                    className={`flex-1 h-0.5 mx-3 transition-colors ${
-                      currentStep > step.num ? 'bg-emerald-500/70' : 'bg-slate-800'
+                    className={`flex-1 h-0.5 mx-4 transition-all ${
+                      currentStep > step.num ? 'bg-emerald-500' : 'bg-slate-200'
                     }`}
                   />
                 )}
@@ -118,269 +118,221 @@ export const ApplicationForm = () => {
         </div>
       </div>
 
-      {/* Step 1: Personal Details */}
-      {currentStep === 1 && (
-        <div className="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-6">
-          <h2 className="text-sm font-bold text-white pb-3 border-b border-slate-800">
-            Personal Details
-          </h2>
+      {/* Form Content Steps */}
+      <div className="light-card p-6 md:p-8 rounded-2xl shadow-xs space-y-6">
+        {/* Step 1: Personal Details */}
+        {currentStep === 1 && (
+          <div className="space-y-4">
+            <h2 className="text-sm font-bold text-slate-900 pb-2 border-b border-slate-100">Step 1: Personal Details</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="block text-slate-600 font-medium mb-1">Full Legal Name</label>
+                <input
+                  type="text"
+                  value={formData.fullName}
+                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-hidden focus:border-orange-500 focus:bg-white"
+                />
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Full Name */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Full Name *
-              </label>
-              <input
-                type="text"
-                value={formData.fullName}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
-              />
-            </div>
-
-            {/* Date of Birth */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Date of Birth *
-              </label>
-              <div className="relative">
+              <div>
+                <label className="block text-slate-600 font-medium mb-1">Date of Birth</label>
                 <input
                   type="date"
                   value={formData.dob}
                   onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-hidden focus:border-orange-500 focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-600 font-medium mb-1">Gender</label>
+                <select
+                  value={formData.gender}
+                  onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-hidden focus:border-orange-500 focus:bg-white"
+                >
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-600 font-medium mb-1">Aadhaar Number (eKYC Linked)</label>
+                <input
+                  type="text"
+                  disabled
+                  value={formData.aadhaar}
+                  className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-600 font-medium mb-1">Mobile Number</label>
+                <input
+                  type="text"
+                  value={formData.mobile}
+                  onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-hidden focus:border-orange-500 focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-600 font-medium mb-1">Email Address</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-hidden focus:border-orange-500 focus:bg-white"
                 />
               </div>
             </div>
-
-            {/* Gender */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Gender *
-              </label>
-              <select
-                value={formData.gender}
-                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
-              >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            {/* Mobile Number */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Mobile Number *
-              </label>
-              <input
-                type="text"
-                value={formData.mobile}
-                onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
-              />
-            </div>
-
-            {/* Email ID */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Email ID *
-              </label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
-              />
-            </div>
-
-            {/* Aadhaar Number */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Aadhaar Number *
-              </label>
-              <input
-                type="text"
-                value={formData.aadhaar}
-                disabled
-                className="w-full px-3.5 py-2.5 bg-slate-800/40 border border-slate-700/60 rounded-xl text-xs text-slate-400 cursor-not-allowed"
-              />
-            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Step 2: Address Details */}
-      {currentStep === 2 && (
-        <div className="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-6">
-          <h2 className="text-sm font-bold text-white pb-3 border-b border-slate-800">
-            Address & RTO Jurisdiction
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Residential Address Line
-              </label>
-              <input
-                type="text"
-                value={formData.addressLine}
-                onChange={(e) => setFormData({ ...formData, addressLine: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-orange-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                City / District
-              </label>
-              <input
-                type="text"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-orange-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                State
-              </label>
-              <input
-                type="text"
-                value={formData.state}
-                disabled
-                className="w-full px-3.5 py-2.5 bg-slate-800/40 border border-slate-700/60 rounded-xl text-xs text-slate-400 cursor-not-allowed"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                PIN Code
-              </label>
-              <input
-                type="text"
-                value={formData.pincode}
-                onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-orange-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Designated RTO Office
-              </label>
-              <input
-                type="text"
-                value={formData.rtoLocation}
-                disabled
-                className="w-full px-3.5 py-2.5 bg-slate-800/40 border border-slate-700/60 rounded-xl text-xs text-slate-400 cursor-not-allowed"
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Step 3: Documents */}
-      {currentStep === 3 && (
-        <div className="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-6">
-          <h2 className="text-sm font-bold text-white pb-3 border-b border-slate-800">
-            Upload Verification Documents
-          </h2>
-
+        {/* Step 2: Address Details */}
+        {currentStep === 2 && (
           <div className="space-y-4">
-            <div className="p-4 rounded-xl border border-dashed border-slate-700 hover:border-orange-500/60 bg-slate-800/40 transition-colors flex flex-col items-center justify-center text-center">
-              <UploadCloud className="w-8 h-8 text-orange-400 mb-2" />
-              <p className="text-xs font-semibold text-white">Upload Medical Fitness Certificate (Form 1A)</p>
-              <p className="text-[11px] text-slate-400 mt-1">Drag and drop PDF or JPG (Max 2MB)</p>
-              <span className="mt-3 px-3 py-1 bg-slate-800 text-orange-400 text-xs rounded-lg border border-slate-700">
-                Browse Files
-              </span>
-            </div>
+            <h2 className="text-sm font-bold text-slate-900 pb-2 border-b border-slate-100">Step 2: Address & RTO Jurisdiction</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div className="sm:col-span-2">
+                <label className="block text-slate-600 font-medium mb-1">Address Line</label>
+                <input
+                  type="text"
+                  value={formData.addressLine}
+                  onChange={(e) => setFormData({ ...formData, addressLine: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-hidden focus:border-orange-500 focus:bg-white"
+                />
+              </div>
 
-            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              <div>
+                <label className="block text-slate-600 font-medium mb-1">City</label>
+                <input
+                  type="text"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-hidden focus:border-orange-500 focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-600 font-medium mb-1">State</label>
+                <input
+                  type="text"
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-hidden focus:border-orange-500 focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-600 font-medium mb-1">Postal Code / PIN</label>
+                <input
+                  type="text"
+                  value={formData.pincode}
+                  onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-hidden focus:border-orange-500 focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-600 font-medium mb-1">Nearest Regional Transport Office (RTO)</label>
+                <input
+                  type="text"
+                  value={formData.rtoLocation}
+                  onChange={(e) => setFormData({ ...formData, rtoLocation: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-hidden focus:border-orange-500 focus:bg-white"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Documents */}
+        {currentStep === 3 && (
+          <div className="space-y-4">
+            <h2 className="text-sm font-bold text-slate-900 pb-2 border-b border-slate-100">Step 3: Document Verification (DigiLocker Integrated)</h2>
+            <div className="space-y-3">
+              <div className="p-4 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">Aadhaar Card (UIDAI eKYC)</p>
+                    <p className="text-[11px] text-slate-500">Auto-fetched and cryptographically verified</p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                  Verified ✓
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">Learner License No. TN-37/LL/2024/008812</p>
+                    <p className="text-[11px] text-slate-500">Auto-fetched from Parivahan National Registry</p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                  Verified ✓
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl border border-dashed border-slate-300 hover:border-orange-400 bg-slate-50/50 flex flex-col items-center justify-center text-center gap-2 cursor-pointer transition-all">
+                <UploadCloud className="w-6 h-6 text-orange-500" />
                 <div>
-                  <p className="text-xs font-bold text-emerald-300">Aadhaar eKYC Pre-Verified</p>
-                  <p className="text-[11px] text-slate-400">Identity and Residence Proof verified from UIDAI vault</p>
+                  <p className="text-xs font-bold text-slate-800">Upload Medical Fitness Certificate (Optional)</p>
+                  <p className="text-[10px] text-slate-400">PDF, JPG up to 5MB</p>
                 </div>
               </div>
-              <span className="text-[11px] font-semibold text-emerald-400">Verified ✓</span>
             </div>
           </div>
+        )}
+
+        {/* Step 4: Review & Submit */}
+        {currentStep === 4 && (
+          <div className="space-y-4">
+            <h2 className="text-sm font-bold text-slate-900 pb-2 border-b border-slate-100">Step 4: Review Application & Interoperability Consent</h2>
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+              <div className="flex justify-between"><span className="text-slate-500 font-medium">Applicant:</span><span className="font-bold text-slate-900">{formData.fullName}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500 font-medium">Service Scheme:</span><span className="font-bold text-slate-900">Driving License (LMV)</span></div>
+              <div className="flex justify-between"><span className="text-slate-500 font-medium">Jurisdiction:</span><span className="font-bold text-slate-900">{formData.rtoLocation}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500 font-medium">Citizen ID:</span><span className="font-mono font-bold text-orange-600">{user.citizenId}</span></div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-emerald-900 leading-relaxed">
+                <span className="font-bold">InterOp Auto-Consent Enabled:</span> I authorize the InterOp gateway to exchange verified credentials between UIDAI, Parivahan, and State Welfare databases for expedited digital issuance.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Stepper Navigation Buttons */}
+        <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+          <button
+            onClick={handlePrev}
+            className="btn-press flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>{currentStep === 1 ? 'Back to Services' : 'Previous Step'}</span>
+          </button>
+
+          <button
+            onClick={handleNext}
+            className="btn-press flex items-center gap-2 px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition-all shadow-md shadow-orange-500/25"
+          >
+            <span>{currentStep === 4 ? 'Confirm & Submit to FastAPI' : 'Continue'}</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
-      )}
-
-      {/* Step 4: Review & Submit */}
-      {currentStep === 4 && (
-        <div className="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-6">
-          <h2 className="text-sm font-bold text-white pb-3 border-b border-slate-800">
-            Review Application Details
-          </h2>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
-            <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-800">
-              <p className="text-slate-400">Applicant Name</p>
-              <p className="font-semibold text-white mt-1">{formData.fullName}</p>
-            </div>
-            <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-800">
-              <p className="text-slate-400">Date of Birth</p>
-              <p className="font-semibold text-white mt-1">{formData.dob}</p>
-            </div>
-            <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-800">
-              <p className="text-slate-400">Mobile</p>
-              <p className="font-semibold text-white mt-1">{formData.mobile}</p>
-            </div>
-            <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-800">
-              <p className="text-slate-400">Aadhaar</p>
-              <p className="font-semibold text-white mt-1">{formData.aadhaar}</p>
-            </div>
-            <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-800">
-              <p className="text-slate-400">RTO Jurisdiction</p>
-              <p className="font-semibold text-white mt-1">{formData.rtoLocation}</p>
-            </div>
-            <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-800">
-              <p className="text-slate-400">Estimated Fee</p>
-              <p className="font-semibold text-emerald-400 mt-1">₹ 200 (approx)</p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-2.5 p-3.5 bg-slate-800/60 rounded-xl border border-slate-700/80">
-            <input
-              type="checkbox"
-              id="consent-declaration"
-              checked={formData.consentAgreed}
-              onChange={(e) => setFormData({ ...formData, consentAgreed: e.target.checked })}
-              className="mt-0.5 rounded text-orange-600 focus:ring-orange-500"
-            />
-            <label htmlFor="consent-declaration" className="text-xs text-slate-300 leading-relaxed cursor-pointer">
-              I hereby declare that the information provided above is true and authentic to the best of my knowledge under the Motor Vehicles Act.
-            </label>
-          </div>
-        </div>
-      )}
-
-      {/* Form Action Controls */}
-      <div className="flex items-center justify-end gap-3 pt-2">
-        <button
-          type="button"
-          onClick={handlePrev}
-          className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
-        >
-          {currentStep === 1 ? 'Cancel' : 'Previous'}
-        </button>
-
-        <button
-          type="button"
-          onClick={handleNext}
-          className="px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold transition-all shadow-lg shadow-orange-600/30 flex items-center gap-1.5"
-        >
-          <span>{currentStep === 4 ? 'Submit Application' : 'Next'}</span>
-          <ArrowRight className="w-4 h-4" />
-        </button>
       </div>
     </div>
   );

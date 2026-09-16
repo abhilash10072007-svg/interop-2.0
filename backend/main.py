@@ -22,7 +22,17 @@ from services.exceptions import (
     DepartmentUnavailableException
 )
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(title="GovSync API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 @app.exception_handler(GovSyncException)
 async def govsync_exception_handler(
     request: Request,
