@@ -24,7 +24,7 @@ import { Profile } from './components/citizen/Profile';
 import { ServiceDetailsModal } from './components/citizen/ServiceDetailsModal';
 import { AadhaarLinkModal } from './components/citizen/AadhaarLinkModal';
 
-import { OfficerReviewQueue } from './components/official/OfficerReviewQueue';
+import OfficerReviewQueue from './components/official/OfficerReviewQueue';
 import { AdminAnalytics } from './components/admin/AdminAnalytics';
 
 import { ArrowUp } from 'lucide-react';

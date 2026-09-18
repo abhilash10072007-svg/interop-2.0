@@ -34,11 +34,59 @@ export const ApplicationForm = () => {
 
 
   // ============================================================
+  // INITIAL SERVICE
+  // ============================================================
+
+  /*
+    Services.jsx should store the selected service before opening
+    the Application Form.
+
+    Example:
+      sessionStorage.setItem(
+        'selectedApplicationService',
+        'Driving License'
+      );
+
+    We read that value here.
+
+    If nothing exists, Education Scholarship remains the safe
+    fallback.
+  */
+
+  const getInitialScheme = () => {
+
+    const storedScheme =
+      sessionStorage.getItem(
+        'selectedApplicationService'
+      );
+
+    const allowedSchemes = [
+      'Education Scholarship',
+      'Driving License',
+      'Student Assistance',
+      'Income Certificate',
+      'Caste Certificate',
+      'Vehicle Registration',
+      'Personal Loan'
+    ];
+
+    if (
+      storedScheme &&
+      allowedSchemes.includes(storedScheme)
+    ) {
+      return storedScheme;
+    }
+
+    return 'Education Scholarship';
+  };
+
+
+  // ============================================================
   // STATE
   // ============================================================
 
   const [selectedScheme, setSelectedScheme] =
-    useState('Education Scholarship');
+    useState(getInitialScheme);
 
   const [currentStep, setCurrentStep] =
     useState(1);
@@ -70,6 +118,28 @@ export const ApplicationForm = () => {
     docUploaded: true,
     consentAgreed: true
   });
+
+
+  // ============================================================
+  // UPDATE SERVICE WHEN FORM OPENS
+  // ============================================================
+
+  useEffect(() => {
+
+    const storedScheme =
+      sessionStorage.getItem(
+        'selectedApplicationService'
+      );
+
+    if (storedScheme) {
+
+      setSelectedScheme(
+        storedScheme
+      );
+
+    }
+
+  }, []);
 
 
   // ============================================================
@@ -120,6 +190,32 @@ export const ApplicationForm = () => {
 
 
   // ============================================================
+  // SERVICE TYPE HELPERS
+  // ============================================================
+
+  const isDrivingLicense =
+    selectedScheme === 'Driving License';
+
+  const isEducationScholarship =
+    selectedScheme === 'Education Scholarship';
+
+  const isStudentAssistance =
+    selectedScheme === 'Student Assistance';
+
+  const isIncomeCertificate =
+    selectedScheme === 'Income Certificate';
+
+  const isCasteCertificate =
+    selectedScheme === 'Caste Certificate';
+
+  const isVehicleRegistration =
+    selectedScheme === 'Vehicle Registration';
+
+  const isPersonalLoan =
+    selectedScheme === 'Personal Loan';
+
+
+  // ============================================================
   // STEPS
   // ============================================================
 
@@ -144,87 +240,128 @@ export const ApplicationForm = () => {
 
 
   // ============================================================
-  // FIND MISSING CONSENTS
+  // REQUIRED CONSENTS
   // ============================================================
 
-  const missingConsents = (() => {
+  const requiredConsents = (() => {
+
+    /*
+      Education Scholarship and Student Assistance need
+      Education + Income department access.
+    */
 
     if (
-      eligibilityData &&
-      eligibilityData.criteria
+      isEducationScholarship ||
+      isStudentAssistance
     ) {
-
-      const missing = [];
-
-      if (
-        eligibilityData.criteria
-          .education_consent !== true
-      ) {
-        missing.push({
+      return [
+        {
           dataProvider:
             'Education Department',
 
           dataType:
             'Education',
 
+          purpose:
+            selectedScheme,
+
           label:
             'Education Department'
-        });
-      }
+        },
 
-      if (
-        eligibilityData.criteria
-          .income_consent !== true
-      ) {
-        missing.push({
+        {
           dataProvider:
             'Income Department',
 
           dataType:
             'Income',
 
+          purpose:
+            selectedScheme,
+
           label:
             'Income Department'
-        });
-      }
-
-      return missing;
+        }
+      ];
     }
 
 
-    // ----------------------------------------------------------
-    // FALLBACK: INSPECT LIVE CONSENT RECORDS
-    // ----------------------------------------------------------
+    /*
+      Driving License needs Transport-related verification.
+      For the current prototype, the actual eligibility checks
+      are performed by the backend using learner license,
+      medical fitness and Aadhaar records.
+    */
+
+    if (isDrivingLicense) {
+      return [];
+    }
+
+
+    if (isIncomeCertificate) {
+      return [];
+    }
+
+
+    if (isCasteCertificate) {
+      return [];
+    }
+
+
+    if (isVehicleRegistration) {
+      return [];
+    }
+
+
+    if (isPersonalLoan) {
+      return [];
+    }
+
+
+    return [];
+
+  })();
+
+
+  // ============================================================
+  // FIND MISSING CONSENTS
+  // ============================================================
+
+  const missingConsents = (() => {
+
+    /*
+      If the backend already returned missing consents,
+      use those first.
+    */
+
+    if (
+      eligibilityData &&
+      Array.isArray(
+        eligibilityData.missing_consents
+      )
+    ) {
+
+      return eligibilityData.missing_consents;
+
+    }
+
+
+    /*
+      Education Scholarship / Student Assistance
+      require Education + Income consent.
+    */
+
+    if (
+      requiredConsents.length === 0
+    ) {
+      return [];
+    }
+
 
     const safeConsents =
       Array.isArray(consents)
         ? consents
         : [];
-
-
-    const requiredConsents = [
-      {
-        dataProvider:
-          'Education Department',
-
-        dataType:
-          'Education',
-
-        label:
-          'Education Department'
-      },
-
-      {
-        dataProvider:
-          'Income Department',
-
-        dataType:
-          'Income',
-
-        label:
-          'Income Department'
-      }
-    ];
 
 
     return requiredConsents.filter(
@@ -256,6 +393,15 @@ export const ApplicationForm = () => {
                   .toLowerCase();
 
 
+              const purpose =
+                String(
+                  consent.purpose ||
+                  ''
+                )
+                  .trim()
+                  .toLowerCase();
+
+
               const status =
                 String(
                   consent.status ||
@@ -265,33 +411,54 @@ export const ApplicationForm = () => {
                   .toUpperCase();
 
 
+              if (
+                status !== 'GRANTED'
+              ) {
+                return false;
+              }
+
+
+              const providerMatches =
+                provider ===
+                  required.dataProvider
+                    .toLowerCase()
+                ||
+                provider.includes(
+                  required.dataProvider
+                    .toLowerCase()
+                );
+
+
+              const typeMatches =
+                type ===
+                  required.dataType
+                    .toLowerCase()
+                ||
+                type.includes(
+                  required.dataType
+                    .toLowerCase()
+                );
+
+
+              const purposeMatches =
+                !purpose ||
+                purpose ===
+                  required.purpose
+                    .toLowerCase();
+
+
               return (
-                (
-                  provider ===
-                    required.dataProvider
-                      .toLowerCase()
-                  ||
-                  provider.includes(
-                    required.dataProvider
-                      .toLowerCase()
-                  )
-                )
-                &&
-                (
-                  type ===
-                    required.dataType
-                      .toLowerCase()
-                  ||
-                  status === 'GRANTED'
-                )
-                &&
-                status === 'GRANTED'
+                providerMatches &&
+                typeMatches &&
+                purposeMatches
               );
+
             }
           );
 
 
         return !found;
+
       }
     );
 
@@ -315,12 +482,59 @@ export const ApplicationForm = () => {
 
 
   // ============================================================
+  // SERVICE ICON
+  // ============================================================
+
+  const getServiceIcon = () => {
+
+    if (isDrivingLicense) {
+      return (
+        <Car className="w-6 h-6" />
+      );
+    }
+
+    return (
+      <GraduationCap className="w-6 h-6" />
+    );
+
+  };
+
+
+  // ============================================================
+  // HANDLE SERVICE CHANGE
+  // ============================================================
+
+  const handleSchemeChange = (event) => {
+
+    const newScheme =
+      event.target.value;
+
+    setSelectedScheme(
+      newScheme
+    );
+
+    sessionStorage.setItem(
+      'selectedApplicationService',
+      newScheme
+    );
+
+    setCurrentStep(1);
+    setSubmissionResult(null);
+    setEligibilityFailure(null);
+
+  };
+
+
+  // ============================================================
   // HANDLE NEXT
   // ============================================================
 
   const handleNext = async () => {
 
-    // Move to next step
+    // ----------------------------------------------------------
+    // MOVE TO NEXT STEP
+    // ----------------------------------------------------------
+
     if (currentStep < 4) {
 
       setCurrentStep(
@@ -348,7 +562,10 @@ export const ApplicationForm = () => {
     }
 
 
-    // Clear previous errors
+    // ----------------------------------------------------------
+    // CLEAR OLD RESULTS
+    // ----------------------------------------------------------
+
     setEligibilityFailure(null);
     setSubmissionResult(null);
 
@@ -358,7 +575,11 @@ export const ApplicationForm = () => {
     try {
 
       console.log(
-        'APPLICATION FORM SUBMISSION STARTED'
+        '======================================'
+      );
+
+      console.log(
+        'APPLICATION FORM SUBMISSION'
       );
 
       console.log(
@@ -367,10 +588,33 @@ export const ApplicationForm = () => {
       );
 
       console.log(
-        'Scheme:',
+        'Selected Service:',
         selectedScheme
       );
 
+      console.log(
+        'Operation:',
+        'APPLY'
+      );
+
+      console.log(
+        '======================================'
+      );
+
+
+      /*
+        IMPORTANT:
+
+        serviceName is explicitly sent to AppContext.
+
+        AppContext then sends:
+
+          scheme_name = selectedScheme
+
+        to:
+
+          POST /api/applications/submit
+      */
 
       const result =
         await createApplication({
@@ -378,13 +622,24 @@ export const ApplicationForm = () => {
           serviceName:
             selectedScheme,
 
+          operation:
+            'APPLY',
+
           category:
-            selectedScheme ===
-            'Education Scholarship'
-              ? 'Social Welfare & Education'
-              : 'Transport & Vehicles',
+            isDrivingLicense
+              ? 'Transport & Vehicles'
+              : isIncomeCertificate
+              ? 'Revenue & Land Administration'
+              : isCasteCertificate
+              ? 'Backward Classes & Community Welfare'
+              : isVehicleRegistration
+              ? 'Transport & Vehicles'
+              : isPersonalLoan
+              ? 'Public Financial Institutions Network'
+              : 'Social Welfare & Education',
 
           ...formData
+
         });
 
 
@@ -402,7 +657,9 @@ export const ApplicationForm = () => {
         result?.application_submitted === true
       ) {
 
-        setSubmissionResult(result);
+        setSubmissionResult(
+          result
+        );
 
         return;
       }
@@ -412,11 +669,13 @@ export const ApplicationForm = () => {
       // STORE RESULT
       // --------------------------------------------------------
 
-      setSubmissionResult(result);
+      setSubmissionResult(
+        result
+      );
 
 
       // --------------------------------------------------------
-      // EXTRACT ELIGIBILITY REASONS
+      // EXTRACT ELIGIBILITY
       // --------------------------------------------------------
 
       const reasons =
@@ -440,7 +699,7 @@ export const ApplicationForm = () => {
       const eligibilityMessage =
         result?.message ||
         result?.eligibility?.message ||
-        'Citizen is not eligible for this scheme.';
+        'Citizen is not eligible for this service.';
 
 
       // --------------------------------------------------------
@@ -463,6 +722,7 @@ export const ApplicationForm = () => {
 
           criteria:
             criteria
+
         });
 
         return;
@@ -481,6 +741,7 @@ export const ApplicationForm = () => {
       ) {
 
         return;
+
       }
 
 
@@ -493,6 +754,7 @@ export const ApplicationForm = () => {
       ) {
 
         return;
+
       }
 
     } catch (error) {
@@ -523,7 +785,9 @@ export const ApplicationForm = () => {
 
     } finally {
 
-      setIsSubmitting(false);
+      setIsSubmitting(
+        false
+      );
 
     }
 
@@ -572,7 +836,9 @@ export const ApplicationForm = () => {
 
   const closeEligibilityFailure = () => {
 
-    setEligibilityFailure(null);
+    setEligibilityFailure(
+      null
+    );
 
   };
 
@@ -596,16 +862,7 @@ export const ApplicationForm = () => {
 
           <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 border border-orange-200 flex items-center justify-center shadow-2xs">
 
-            {selectedScheme ===
-            'Education Scholarship' ? (
-
-              <GraduationCap className="w-6 h-6" />
-
-            ) : (
-
-              <Car className="w-6 h-6" />
-
-            )}
+            {getServiceIcon()}
 
           </div>
 
@@ -641,29 +898,46 @@ export const ApplicationForm = () => {
         </div>
 
 
-        {/* Scheme selector */}
+        {/* ==================================================== */}
+        {/* SCHEME SELECTOR */}
+        {/* ==================================================== */}
 
         <select
-          value={selectedScheme}
-          onChange={(event) => {
-
-            setSelectedScheme(
-              event.target.value
-            );
-
-            setSubmissionResult(null);
-            setEligibilityFailure(null);
-
-          }}
+          value={
+            selectedScheme
+          }
+          onChange={
+            handleSchemeChange
+          }
           className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-orange-500"
         >
 
           <option value="Education Scholarship">
-            Education Scholarship (Live InterOp)
+            Education Scholarship
+          </option>
+
+          <option value="Student Assistance">
+            Student Assistance
           </option>
 
           <option value="Driving License">
-            Driving License (Transport)
+            Driving License
+          </option>
+
+          <option value="Income Certificate">
+            Income Certificate
+          </option>
+
+          <option value="Caste Certificate">
+            Caste Certificate
+          </option>
+
+          <option value="Vehicle Registration">
+            Vehicle Registration
+          </option>
+
+          <option value="Personal Loan">
+            Personal Loan
           </option>
 
         </select>
@@ -816,13 +1090,16 @@ export const ApplicationForm = () => {
 
                 <input
                   type="text"
-                  value={formData.fullName}
-                  onChange={(event) =>
-                    setFormData({
-                      ...formData,
-                      fullName:
-                        event.target.value
-                    })
+                  value={
+                    formData.fullName
+                  }
+                  onChange={
+                    (event) =>
+                      setFormData({
+                        ...formData,
+                        fullName:
+                          event.target.value
+                      })
                   }
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold"
                 />
@@ -840,13 +1117,16 @@ export const ApplicationForm = () => {
 
                 <input
                   type="date"
-                  value={formData.dob}
-                  onChange={(event) =>
-                    setFormData({
-                      ...formData,
-                      dob:
-                        event.target.value
-                    })
+                  value={
+                    formData.dob
+                  }
+                  onChange={
+                    (event) =>
+                      setFormData({
+                        ...formData,
+                        dob:
+                          event.target.value
+                      })
                   }
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold"
                 />
@@ -884,7 +1164,9 @@ export const ApplicationForm = () => {
 
                 <input
                   type="text"
-                  value={formData.mobile}
+                  value={
+                    formData.mobile
+                  }
                   disabled
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-semibold"
                 />
@@ -905,12 +1187,13 @@ export const ApplicationForm = () => {
                   value={
                     formData.addressLine
                   }
-                  onChange={(event) =>
-                    setFormData({
-                      ...formData,
-                      addressLine:
-                        event.target.value
-                    })
+                  onChange={
+                    (event) =>
+                      setFormData({
+                        ...formData,
+                        addressLine:
+                          event.target.value
+                      })
                   }
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold"
                 />
@@ -939,96 +1222,170 @@ export const ApplicationForm = () => {
             </h2>
 
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {isDrivingLicense ? (
+
+              <div className="space-y-4">
+
+                <div className="p-4 rounded-xl bg-sky-50 border border-sky-200">
+
+                  <p className="text-xs font-bold text-sky-900">
+
+                    Driving License Eligibility
+
+                  </p>
+
+                  <p className="text-xs text-sky-800 mt-1">
+
+                    GovSync will verify the learner
+                    license, medical fitness and Aadhaar
+                    address directly from connected
+                    department records.
+
+                  </p>
+
+                </div>
 
 
-              <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  <div>
 
-                  Educational Institution
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">
 
-                </label>
+                      License Type
 
-                <input
-                  type="text"
-                  value={
-                    formData.institution
-                  }
-                  onChange={(event) =>
-                    setFormData({
-                      ...formData,
-                      institution:
-                        event.target.value
-                    })
-                  }
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold"
-                />
+                    </label>
 
-              </div>
+                    <input
+                      type="text"
+                      value="LMV"
+                      disabled
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold"
+                    />
+
+                  </div>
 
 
-              <div>
+                  <div>
 
-                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">
 
-                  Course / Degree
+                      Applicant Age
 
-                </label>
+                    </label>
 
-                <input
-                  type="text"
-                  value={
-                    formData.course
-                  }
-                  onChange={(event) =>
-                    setFormData({
-                      ...formData,
-                      course:
-                        event.target.value
-                    })
-                  }
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold"
-                />
+                    <input
+                      type="text"
+                      disabled
+                      value={
+                        eligibilityData?.criteria?.age ??
+                        'Verified by backend'
+                      }
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold"
+                    />
 
-              </div>
-
-
-              <div>
-
-                <label className="block text-xs font-semibold text-slate-600 mb-1">
-
-                  Annual Household Income
-
-                </label>
-
-                <div className="w-full px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-700">
-
-                  Verified from Income Department
+                  </div>
 
                 </div>
 
               </div>
 
+            ) : (
 
-              <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                <label className="block text-xs font-semibold text-slate-600 mb-1">
 
-                  Scholarship Income Limit
+                <div>
 
-                </label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
 
-                <input
-                  type="text"
-                  disabled
-                  value="₹2,50,000 / year"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold"
-                />
+                    Educational Institution
+
+                  </label>
+
+                  <input
+                    type="text"
+                    value={
+                      formData.institution
+                    }
+                    onChange={
+                      (event) =>
+                        setFormData({
+                          ...formData,
+                          institution:
+                            event.target.value
+                        })
+                    }
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold"
+                  />
+
+                </div>
+
+
+                <div>
+
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+
+                    Course / Degree
+
+                  </label>
+
+                  <input
+                    type="text"
+                    value={
+                      formData.course
+                    }
+                    onChange={
+                      (event) =>
+                        setFormData({
+                          ...formData,
+                          course:
+                            event.target.value
+                        })
+                    }
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold"
+                  />
+
+                </div>
+
+
+                <div>
+
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+
+                    Annual Household Income
+
+                  </label>
+
+                  <div className="w-full px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-700">
+
+                    Verified from Income Department
+
+                  </div>
+
+                </div>
+
+
+                <div>
+
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+
+                    Scholarship Income Limit
+
+                  </label>
+
+                  <input
+                    type="text"
+                    disabled
+                    value="₹2,50,000 / year"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold"
+                  />
+
+                </div>
 
               </div>
 
-            </div>
+            )}
 
 
             {/* Eligibility result */}
@@ -1112,285 +1469,414 @@ export const ApplicationForm = () => {
             </h2>
 
 
-            {/* Education Department */}
+            {isDrivingLicense ? (
 
-            <div
-              className={`p-4 rounded-xl border flex items-center justify-between ${
-                missingConsents.some(
-                  (consent) =>
-                    consent.dataProvider ===
-                    'Education Department'
-                )
-                  ? 'bg-amber-50 border-amber-200'
-                  : 'bg-emerald-50 border-emerald-200'
-              }`}
-            >
+              <>
 
-              <div className="flex items-center gap-3">
+                <div className="p-4 rounded-xl bg-sky-50 border border-sky-200 flex items-start gap-3">
 
-                <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                    missingConsents.some(
-                      (consent) =>
-                        consent.dataProvider ===
-                        'Education Department'
-                    )
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-emerald-100 text-emerald-700'
-                  }`}
-                >
+                  <Car className="w-5 h-5 text-sky-600 shrink-0" />
 
-                  <FileText className="w-5 h-5" />
+                  <div>
 
-                </div>
+                    <p className="text-xs font-bold text-sky-900">
 
-
-                <div>
-
-                  <p className="text-xs font-bold text-slate-900">
-
-                    Education Department
-
-                  </p>
-
-                  <p className="text-[11px] text-slate-500">
-
-                    Education records
-
-                  </p>
-
-                </div>
-
-              </div>
-
-
-              {missingConsents.some(
-                (consent) =>
-                  consent.dataProvider ===
-                  'Education Department'
-              ) ? (
-
-                <span className="text-[10px] font-bold text-amber-700 bg-white border border-amber-200 px-2.5 py-1 rounded-full">
-
-                  CONSENT REQUIRED
-
-                </span>
-
-              ) : (
-
-                <span className="text-[10px] font-bold text-emerald-700 bg-white border border-emerald-200 px-2.5 py-1 rounded-full">
-
-                  GRANTED ✓
-
-                </span>
-
-              )}
-
-            </div>
-
-
-            {/* Income Department */}
-
-            <div
-              className={`p-4 rounded-xl border flex items-center justify-between ${
-                missingConsents.some(
-                  (consent) =>
-                    consent.dataProvider ===
-                    'Income Department'
-                )
-                  ? 'bg-amber-50 border-amber-200'
-                  : 'bg-emerald-50 border-emerald-200'
-              }`}
-            >
-
-              <div className="flex items-center gap-3">
-
-                <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                    missingConsents.some(
-                      (consent) =>
-                        consent.dataProvider ===
-                        'Income Department'
-                    )
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-emerald-100 text-emerald-700'
-                  }`}
-                >
-
-                  <FileText className="w-5 h-5" />
-
-                </div>
-
-
-                <div>
-
-                  <p className="text-xs font-bold text-slate-900">
-
-                    Income Department
-
-                  </p>
-
-                  <p className="text-[11px] text-slate-500">
-
-                    Income records
-
-                  </p>
-
-                </div>
-
-              </div>
-
-
-              {missingConsents.some(
-                (consent) =>
-                  consent.dataProvider ===
-                  'Income Department'
-              ) ? (
-
-                <span className="text-[10px] font-bold text-amber-700 bg-white border border-amber-200 px-2.5 py-1 rounded-full">
-
-                  CONSENT REQUIRED
-
-                </span>
-
-              ) : (
-
-                <span className="text-[10px] font-bold text-emerald-700 bg-white border border-emerald-200 px-2.5 py-1 rounded-full">
-
-                  GRANTED ✓
-
-                </span>
-
-              )}
-
-            </div>
-
-
-            {/* Missing consent explanation */}
-
-            {hasMissingConsent && (
-
-              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
-
-                <div className="flex items-start gap-3">
-
-                  <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-
-
-                  <div className="flex-1">
-
-                    <p className="text-xs font-bold text-amber-900">
-
-                      Consent Required
+                      Transport Department Verification
 
                     </p>
 
+                    <p className="text-xs text-sky-800 mt-1">
 
-                    <p className="text-xs text-amber-800 mt-1 leading-relaxed">
-
-                      GovSync cannot verify your eligibility
-                      until permission is granted to access
-                      the following department records:
+                      Connected department records will
+                      be checked automatically by GovSync.
 
                     </p>
-
-
-                    <div className="mt-3 space-y-2">
-
-                      {missingConsents.map(
-                        (consent) => (
-
-                          <div
-                            key={
-                              consent.dataProvider
-                            }
-                            className="flex items-center justify-between bg-white border border-amber-200 rounded-lg px-3 py-2.5"
-                          >
-
-                            <div>
-
-                              <p className="text-xs font-bold text-slate-800">
-
-                                {consent.label ||
-                                  consent.dataProvider}
-
-                              </p>
-
-                              <p className="text-[11px] text-slate-500">
-
-                                Access required:
-                                {' '}
-                                {consent.dataType}
-                                {' '}records
-
-                              </p>
-
-                            </div>
-
-
-                            <span className="text-[10px] font-bold text-red-600">
-
-                              NOT GRANTED
-
-                            </span>
-
-                          </div>
-
-                        )
-                      )}
-
-                    </div>
-
-
-                    <button
-                      type="button"
-                      onClick={
-                        goToConsentManagement
-                      }
-                      className="mt-4 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition-all"
-                    >
-
-                      Grant Required Consent
-
-                    </button>
 
                   </div>
 
                 </div>
 
-              </div>
 
-            )}
+                <div className="space-y-3">
 
 
-            {/* Everything granted */}
+                  {[
+                    {
+                      label:
+                        'Learner License',
+                      value:
+                        eligibilityData?.criteria
+                          ?.learner_license_valid
+                    },
 
-            {!hasMissingConsent && (
+                    {
+                      label:
+                        'Learner License Duration',
+                      value:
+                        eligibilityData?.criteria
+                          ?.learner_license_days,
+                      suffix:
+                        ' days'
+                    },
 
-              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3">
+                    {
+                      label:
+                        'Medical Fitness',
+                      value:
+                        eligibilityData?.criteria
+                          ?.medical_fitness
+                    },
 
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                    {
+                      label:
+                        'Aadhaar Address Match',
+                      value:
+                        eligibilityData?.criteria
+                          ?.aadhaar_address_match
+                    }
 
-                <div>
+                  ].map(
+                    (item) => {
 
-                  <p className="text-xs font-bold text-emerald-900">
+                      const verified =
+                        item.value === true ||
+                        (
+                          typeof item.value ===
+                            'number' &&
+                          item.value > 0
+                        );
 
-                    InterOp Verification Ready
 
-                  </p>
+                      return (
 
-                  <p className="text-xs text-emerald-800 mt-1">
+                        <div
+                          key={
+                            item.label
+                          }
+                          className={`p-4 rounded-xl border flex items-center justify-between ${
+                            verified
+                              ? 'bg-emerald-50 border-emerald-200'
+                              : 'bg-slate-50 border-slate-200'
+                          }`}
+                        >
 
-                    Required department consents are
-                    available. GovSync can verify the
-                    required records through the
-                    interoperability gateway.
+                          <span className="text-xs font-bold text-slate-800">
 
-                  </p>
+                            {item.label}
+
+                          </span>
+
+
+                          <span
+                            className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
+                              verified
+                                ? 'text-emerald-700 bg-white border border-emerald-200'
+                                : 'text-slate-500 bg-white border border-slate-200'
+                            }`}
+                          >
+
+                            {verified
+                              ? (
+                                <>
+                                  VERIFIED
+                                  {item.suffix || ''}
+                                </>
+                              )
+                              : 'PENDING'}
+
+                          </span>
+
+                        </div>
+
+                      );
+
+                    }
+                  )}
 
                 </div>
 
-              </div>
+              </>
+
+            ) : (
+
+              <>
+
+                {/* Education Department */}
+
+                <div
+                  className={`p-4 rounded-xl border flex items-center justify-between ${
+                    missingConsents.some(
+                      (consent) =>
+                        consent.dataProvider ===
+                        'Education Department'
+                    )
+                      ? 'bg-amber-50 border-amber-200'
+                      : 'bg-emerald-50 border-emerald-200'
+                  }`}
+                >
+
+                  <div className="flex items-center gap-3">
+
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        missingConsents.some(
+                          (consent) =>
+                            consent.dataProvider ===
+                            'Education Department'
+                        )
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-emerald-100 text-emerald-700'
+                      }`}
+                    >
+
+                      <FileText className="w-5 h-5" />
+
+                    </div>
+
+
+                    <div>
+
+                      <p className="text-xs font-bold text-slate-900">
+
+                        Education Department
+
+                      </p>
+
+                      <p className="text-[11px] text-slate-500">
+
+                        Education records
+
+                      </p>
+
+                    </div>
+
+                  </div>
+
+
+                  {missingConsents.some(
+                    (consent) =>
+                      consent.dataProvider ===
+                      'Education Department'
+                  ) ? (
+
+                    <span className="text-[10px] font-bold text-amber-700 bg-white border border-amber-200 px-2.5 py-1 rounded-full">
+
+                      CONSENT REQUIRED
+
+                    </span>
+
+                  ) : (
+
+                    <span className="text-[10px] font-bold text-emerald-700 bg-white border border-emerald-200 px-2.5 py-1 rounded-full">
+
+                      GRANTED ✓
+
+                    </span>
+
+                  )}
+
+                </div>
+
+
+                {/* Income Department */}
+
+                <div
+                  className={`p-4 rounded-xl border flex items-center justify-between ${
+                    missingConsents.some(
+                      (consent) =>
+                        consent.dataProvider ===
+                        'Income Department'
+                    )
+                      ? 'bg-amber-50 border-amber-200'
+                      : 'bg-emerald-50 border-emerald-200'
+                  }`}
+                >
+
+                  <div className="flex items-center gap-3">
+
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        missingConsents.some(
+                          (consent) =>
+                            consent.dataProvider ===
+                            'Income Department'
+                        )
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-emerald-100 text-emerald-700'
+                      }`}
+                    >
+
+                      <FileText className="w-5 h-5" />
+
+                    </div>
+
+
+                    <div>
+
+                      <p className="text-xs font-bold text-slate-900">
+
+                        Income Department
+
+                      </p>
+
+                      <p className="text-[11px] text-slate-500">
+
+                        Income records
+
+                      </p>
+
+                    </div>
+
+                  </div>
+
+
+                  {missingConsents.some(
+                    (consent) =>
+                      consent.dataProvider ===
+                      'Income Department'
+                  ) ? (
+
+                    <span className="text-[10px] font-bold text-amber-700 bg-white border border-amber-200 px-2.5 py-1 rounded-full">
+
+                      CONSENT REQUIRED
+
+                    </span>
+
+                  ) : (
+
+                    <span className="text-[10px] font-bold text-emerald-700 bg-white border border-emerald-200 px-2.5 py-1 rounded-full">
+
+                      GRANTED ✓
+
+                    </span>
+
+                  )}
+
+                </div>
+
+
+                {hasMissingConsent && (
+
+                  <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
+
+                    <div className="flex items-start gap-3">
+
+                      <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+
+                      <div className="flex-1">
+
+                        <p className="text-xs font-bold text-amber-900">
+
+                          Consent Required
+
+                        </p>
+
+                        <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+
+                          GovSync cannot verify your
+                          eligibility until permission is
+                          granted to access the required
+                          department records.
+
+                        </p>
+
+
+                        <div className="mt-3 space-y-2">
+
+                          {missingConsents.map(
+                            (consent) => (
+
+                              <div
+                                key={
+                                  consent.dataProvider
+                                }
+                                className="flex items-center justify-between bg-white border border-amber-200 rounded-lg px-3 py-2.5"
+                              >
+
+                                <div>
+
+                                  <p className="text-xs font-bold text-slate-800">
+
+                                    {consent.label ||
+                                      consent.dataProvider}
+
+                                  </p>
+
+                                  <p className="text-[11px] text-slate-500">
+
+                                    Access required:
+                                    {' '}
+                                    {consent.dataType}
+                                    {' '}records
+
+                                  </p>
+
+                                </div>
+
+
+                                <span className="text-[10px] font-bold text-red-600">
+
+                                  NOT GRANTED
+
+                                </span>
+
+                              </div>
+
+                            )
+                          )}
+
+                        </div>
+
+
+                        <button
+                          type="button"
+                          onClick={
+                            goToConsentManagement
+                          }
+                          className="mt-4 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition-all"
+                        >
+
+                          Grant Required Consent
+
+                        </button>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                )}
+
+
+                {!hasMissingConsent && (
+
+                  <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3">
+
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+
+                    <div>
+
+                      <p className="text-xs font-bold text-emerald-900">
+
+                        InterOp Verification Ready
+
+                      </p>
+
+                      <p className="text-xs text-emerald-800 mt-1">
+
+                        Required department consents are
+                        available.
+
+                      </p>
+
+                    </div>
+
+                  </div>
+
+                )}
+
+              </>
 
             )}
 
@@ -1428,8 +1914,6 @@ export const ApplicationForm = () => {
             </h2>
 
 
-            {/* Application summary */}
-
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
 
               <div className="flex justify-between">
@@ -1461,7 +1945,7 @@ export const ApplicationForm = () => {
               <div className="flex justify-between">
 
                 <span className="text-slate-500">
-                  Scheme:
+                  Service:
                 </span>
 
                 <span className="font-bold text-slate-900">
@@ -1474,11 +1958,28 @@ export const ApplicationForm = () => {
               <div className="flex justify-between">
 
                 <span className="text-slate-500">
+                  Operation:
+                </span>
+
+                <span className="font-bold text-orange-600">
+                  APPLY
+                </span>
+
+              </div>
+
+
+              <div className="flex justify-between">
+
+                <span className="text-slate-500">
                   Reviewing Authority:
                 </span>
 
                 <span className="font-bold text-slate-900">
-                  State Welfare Department (Officer U002)
+
+                  {isDrivingLicense
+                    ? 'Transport Department'
+                    : 'State Welfare Department'}
+
                 </span>
 
               </div>
@@ -1511,8 +2012,8 @@ export const ApplicationForm = () => {
                     <p className="text-xs text-red-700 mt-1 leading-relaxed">
 
                       The application is blocked because
-                      the following required consent(s)
-                      have not been granted:
+                      required department consent has not
+                      been granted.
 
                     </p>
 
@@ -1564,14 +2065,6 @@ export const ApplicationForm = () => {
                     </div>
 
 
-                    <p className="text-xs text-red-700 mt-3">
-
-                      Please grant the missing consent(s)
-                      before submitting the application.
-
-                    </p>
-
-
                     <button
                       type="button"
                       onClick={
@@ -1596,7 +2089,6 @@ export const ApplicationForm = () => {
 
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
 
-
                 <div>
 
                   <p className="text-xs font-bold text-emerald-900">
@@ -1605,13 +2097,10 @@ export const ApplicationForm = () => {
 
                   </p>
 
-
                   <p className="text-xs text-emerald-800 mt-1 leading-relaxed">
 
-                    Required cross-department consents
-                    are available. GovSync can securely
-                    verify the required information before
-                    submitting your application.
+                    Required verification permissions are
+                    available.
 
                   </p>
 
@@ -1743,12 +2232,13 @@ export const ApplicationForm = () => {
                 checked={
                   formData.consentAgreed
                 }
-                onChange={(event) =>
-                  setFormData({
-                    ...formData,
-                    consentAgreed:
-                      event.target.checked
-                  })
+                onChange={
+                  (event) =>
+                    setFormData({
+                      ...formData,
+                      consentAgreed:
+                        event.target.checked
+                    })
                 }
                 className="mt-1 accent-orange-500"
               />
@@ -1780,8 +2270,12 @@ export const ApplicationForm = () => {
 
           <button
             type="button"
-            onClick={handlePrev}
-            disabled={isSubmitting}
+            onClick={
+              handlePrev
+            }
+            disabled={
+              isSubmitting
+            }
             className="btn-press flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all disabled:opacity-50"
           >
 
@@ -1800,8 +2294,12 @@ export const ApplicationForm = () => {
 
           <button
             type="button"
-            onClick={handleNext}
-            disabled={isSubmitting}
+            onClick={
+              handleNext
+            }
+            disabled={
+              isSubmitting
+            }
             className={`btn-press flex items-center gap-2 px-6 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-md ${
               isSubmitting
                 ? 'bg-orange-300 cursor-not-allowed'
@@ -1857,8 +2355,6 @@ export const ApplicationForm = () => {
           <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
 
 
-            {/* Modal header */}
-
             <div className="mb-5 flex items-center gap-3">
 
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
@@ -1887,8 +2383,6 @@ export const ApplicationForm = () => {
             </div>
 
 
-            {/* Main message */}
-
             <div className="mb-5 rounded-xl bg-red-50 p-4 border border-red-100">
 
               <p className="font-medium text-red-800">
@@ -1899,8 +2393,6 @@ export const ApplicationForm = () => {
 
             </div>
 
-
-            {/* Reasons */}
 
             {eligibilityFailure.reasons.length > 0 && (
 
@@ -1948,8 +2440,6 @@ export const ApplicationForm = () => {
             )}
 
 
-            {/* Criteria */}
-
             {eligibilityFailure.criteria && (
 
               <div className="mb-5 rounded-xl border border-gray-200 p-4">
@@ -1959,6 +2449,31 @@ export const ApplicationForm = () => {
                   Eligibility Details
 
                 </h3>
+
+
+                {eligibilityFailure.criteria.age !== undefined && (
+
+                  <div className="flex justify-between py-1.5 text-sm">
+
+                    <span className="text-gray-500">
+
+                      Age
+
+                    </span>
+
+                    <span className="font-medium">
+
+                      {
+                        eligibilityFailure
+                          .criteria
+                          .age
+                      }
+
+                    </span>
+
+                  </div>
+
+                )}
 
 
                 {eligibilityFailure.criteria.income_limit !== undefined && (
@@ -2128,12 +2643,91 @@ export const ApplicationForm = () => {
 
                 )}
 
+
+                {eligibilityFailure.criteria.learner_license_valid !== undefined && (
+
+                  <div className="flex justify-between py-1.5 text-sm">
+
+                    <span className="text-gray-500">
+
+                      Learner License
+
+                    </span>
+
+                    <span className="font-semibold">
+
+                      {
+                        eligibilityFailure
+                          .criteria
+                          .learner_license_valid
+                          ? 'Valid'
+                          : 'Invalid'
+                      }
+
+                    </span>
+
+                  </div>
+
+                )}
+
+
+                {eligibilityFailure.criteria.medical_fitness !== undefined && (
+
+                  <div className="flex justify-between py-1.5 text-sm">
+
+                    <span className="text-gray-500">
+
+                      Medical Fitness
+
+                    </span>
+
+                    <span className="font-semibold">
+
+                      {
+                        eligibilityFailure
+                          .criteria
+                          .medical_fitness
+                          ? 'Fit'
+                          : 'Not Fit'
+                      }
+
+                    </span>
+
+                  </div>
+
+                )}
+
+
+                {eligibilityFailure.criteria.aadhaar_address_match !== undefined && (
+
+                  <div className="flex justify-between py-1.5 text-sm">
+
+                    <span className="text-gray-500">
+
+                      Aadhaar Address Match
+
+                    </span>
+
+                    <span className="font-semibold">
+
+                      {
+                        eligibilityFailure
+                          .criteria
+                          .aadhaar_address_match
+                          ? 'Matched'
+                          : 'Not Matched'
+                      }
+
+                    </span>
+
+                  </div>
+
+                )}
+
               </div>
 
             )}
 
-
-            {/* Close */}
 
             <button
               type="button"

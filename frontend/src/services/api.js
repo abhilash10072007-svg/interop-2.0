@@ -223,23 +223,109 @@ const api = {
   // APPLICATIONS
   // ==========================================================
 
-  async submitApplication(
-    citizenId,
-    schemeName
-  ) {
-    const params = new URLSearchParams({
-      citizen_id: citizenId,
-      scheme_name: schemeName,
-    });
+ async submitApplication(
+  citizenId,
+  schemeName,
+  applicationData = {}
+) {
+  const params = new URLSearchParams();
 
-    return await request(
-      '/applications/submit?' +
-        params.toString(),
-      {
-        method: 'POST',
-      }
+  // Required
+  params.set('citizen_id', citizenId);
+  params.set('scheme_name', schemeName);
+
+  // Operation
+  if (applicationData.operation) {
+    params.set(
+      'operation',
+      applicationData.operation
     );
-  },
+  }
+
+  // Driving License
+  if (applicationData.license_type) {
+    params.set(
+      'license_type',
+      applicationData.license_type
+    );
+  }
+
+  if (applicationData.issuing_district) {
+    params.set(
+      'issuing_district',
+      applicationData.issuing_district
+    );
+  }
+
+  if (applicationData.issuing_taluk) {
+    params.set(
+      'issuing_taluk',
+      applicationData.issuing_taluk
+    );
+  }
+
+  // Vehicle Registration
+  if (applicationData.chassis_number) {
+    params.set(
+      'chassis_number',
+      applicationData.chassis_number
+    );
+  }
+
+  if (applicationData.engine_number) {
+    params.set(
+      'engine_number',
+      applicationData.engine_number
+    );
+  }
+
+  if (
+    applicationData.invoice_present !== undefined
+  ) {
+    params.set(
+      'invoice_present',
+      String(applicationData.invoice_present)
+    );
+  }
+
+  if (
+    applicationData.insurance_active !== undefined
+  ) {
+    params.set(
+      'insurance_active',
+      String(applicationData.insurance_active)
+    );
+  }
+
+  if (
+    applicationData.puc_valid !== undefined
+  ) {
+    params.set(
+      'puc_valid',
+      String(applicationData.puc_valid)
+    );
+  }
+
+  // Personal Loan / income verification
+  if (
+    applicationData.declared_income !== undefined &&
+    applicationData.declared_income !== null &&
+    applicationData.declared_income !== ''
+  ) {
+    params.set(
+      'declared_income',
+      String(applicationData.declared_income)
+    );
+  }
+
+  return await request(
+    '/applications/submit?' +
+      params.toString(),
+    {
+      method: 'POST',
+    }
+  );
+},
 
 
   async getApplication(applicationId) {
@@ -248,14 +334,27 @@ const api = {
         encodeURIComponent(applicationId)
     );
   },
+async trackApplication(
+  applicationId,
+  citizenId
+) {
+  const params = new URLSearchParams({
+    citizen_id: citizenId,
+  });
 
+  return await request(
+    '/applications/' +
+      encodeURIComponent(applicationId) +
+      '/track?' +
+      params.toString()
+  );
+},
 
   async getCitizenApplications(citizenId) {
-    return await request(
-      '/applications/citizen/' +
-        encodeURIComponent(citizenId)
-    );
-  },
+  return request(
+    `/applications/citizen/${citizenId}`
+  );
+},
 
 
   async updateApplicationStatus(

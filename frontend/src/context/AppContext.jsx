@@ -21,7 +21,6 @@ import api from '../services/api';
 
 const AppContext = createContext(null);
 
-
 export const AppProvider = ({ children }) => {
 
   // ============================================================
@@ -88,6 +87,24 @@ export const AppProvider = ({ children }) => {
   const [eligibilityData, setEligibilityData] =
     useState(null);
 
+
+  // ============================================================
+  // PENDING APPLICATION
+  // ============================================================
+
+  const [pendingApplication, setPendingApplication] =
+    useState(null);
+
+  const [
+    pendingApplicationMissingConsents,
+    setPendingApplicationMissingConsents
+  ] = useState([]);
+
+
+  // ============================================================
+  // AUDIT / ADMIN / HEALTH
+  // ============================================================
+
   const [auditLogs, setAuditLogs] =
     useState([]);
 
@@ -111,10 +128,18 @@ export const AppProvider = ({ children }) => {
   // ============================================================
 
   const [services] =
-    useState(INITIAL_SERVICES);
+    useState(
+      Array.isArray(INITIAL_SERVICES)
+        ? INITIAL_SERVICES
+        : []
+    );
 
   const [categories] =
-    useState(SERVICE_CATEGORIES);
+    useState(
+      Array.isArray(SERVICE_CATEGORIES)
+        ? SERVICE_CATEGORIES
+        : []
+    );
 
 
   // ============================================================
@@ -157,8 +182,10 @@ export const AppProvider = ({ children }) => {
   const [selectedServiceModal, setSelectedServiceModal] =
     useState(null);
 
-  const [selectedApplicationDetails, setSelectedApplicationDetails] =
-    useState(null);
+  const [
+    selectedApplicationDetails,
+    setSelectedApplicationDetails
+  ] = useState(null);
 
   const [isAadhaarModalOpen, setIsAadhaarModalOpen] =
     useState(false);
@@ -224,65 +251,252 @@ export const AppProvider = ({ children }) => {
       return apps.map(
         (app, index) => {
 
-          const rawStatus = String(
-            app.application_status ||
-            'SUBMITTED'
-          ).toUpperCase();
+          const rawStatus =
+            String(
+              app.application_status ||
+              'SUBMITTED'
+            ).toUpperCase();
 
 
-          let statusLabel =
-            'In Progress';
+          // ------------------------------------------------------
+          // STATUS
+          // ------------------------------------------------------
 
-          let currentStep =
-            'Under Review';
+          let statusLabel = 'In Progress';
+
+          let currentStep = 'Under Review';
 
 
-          if (
-            rawStatus ===
-            'APPROVED'
-          ) {
+          if (rawStatus === 'APPROVED') {
 
-            statusLabel =
-              'Approved';
+            statusLabel = 'Approved';
 
-            currentStep =
-              'Digital Delivery';
+            currentStep = 'Digital Delivery';
 
-          } else if (
-            rawStatus ===
-            'REJECTED'
-          ) {
+          } else if (rawStatus === 'REJECTED') {
 
-            statusLabel =
-              'Rejected';
+            statusLabel = 'Rejected';
 
-            currentStep =
-              'Rejected by Reviewer';
+            currentStep = 'Rejected by Reviewer';
 
-          } else if (
-            rawStatus ===
-            'SUBMITTED'
-          ) {
+          } else if (rawStatus === 'SUBMITTED') {
 
-            statusLabel =
-              'In Progress';
+            statusLabel = 'In Progress';
 
-            currentStep =
-              'Submitted & Queued';
+            currentStep = 'Submitted & Queued';
 
-          } else if (
-            rawStatus ===
-            'UNDER_REVIEW'
-          ) {
+          } else if (rawStatus === 'UNDER_REVIEW') {
 
-            statusLabel =
-              'In Progress';
+            statusLabel = 'In Progress';
 
             currentStep =
               'Department Officer Review';
 
+          } else if (rawStatus === 'UNDER_VERIFICATION') {
+
+            statusLabel = 'In Progress';
+
+            currentStep =
+              'Document & Consent Verification';
+
           }
 
+
+          // ------------------------------------------------------
+          // SERVICE CATEGORY
+          // ------------------------------------------------------
+
+          let serviceCategory =
+            app.service_category;
+
+
+          if (!serviceCategory) {
+
+            if (
+              app.scheme_name ===
+                'Driving License' ||
+              app.scheme_name ===
+                'Vehicle Registration'
+            ) {
+
+              serviceCategory =
+                'Transport & Vehicles';
+
+            } else if (
+              app.scheme_name ===
+              'Income Certificate'
+            ) {
+
+              serviceCategory =
+                'Revenue & Land Administration';
+
+            } else if (
+              app.scheme_name ===
+              'Caste Certificate'
+            ) {
+
+              serviceCategory =
+                'Backward Classes & Community Welfare';
+
+            } else if (
+              app.scheme_name ===
+              'Personal Loan'
+            ) {
+
+              serviceCategory =
+                'Public Financial Institutions Network';
+
+            } else {
+
+              serviceCategory =
+                'Social Welfare & Education';
+
+            }
+
+          }
+
+
+          // ------------------------------------------------------
+          // DEPARTMENT
+          // ------------------------------------------------------
+
+          let department =
+            'Welfare Department';
+
+
+          if (
+            serviceCategory ===
+            'Transport & Vehicles'
+          ) {
+
+            department =
+              'Transport Department';
+
+          } else if (
+            serviceCategory ===
+            'Revenue & Land Administration'
+          ) {
+
+            department =
+              'Revenue Department';
+
+          } else if (
+            serviceCategory ===
+            'Backward Classes & Community Welfare'
+          ) {
+
+            department =
+              'Backward Classes & Community Welfare Department';
+
+          } else if (
+            serviceCategory ===
+            'Public Financial Institutions Network'
+          ) {
+
+            department =
+              'Public Financial Institutions Network';
+
+          }
+
+
+          // ------------------------------------------------------
+          // APPLICATION STEPS
+          // ------------------------------------------------------
+
+          const steps = [
+
+            {
+              name:
+                'Application Submitted',
+
+              status:
+                'completed',
+
+              date:
+                app.submitted_on ||
+                'Day 1',
+            },
+
+
+            {
+              name:
+                'Document & Consent Verification',
+
+              status:
+                rawStatus ===
+                'SUBMITTED'
+                  ? 'current'
+                  : rawStatus ===
+                    'UNDER_VERIFICATION'
+                  ? 'current'
+                  : rawStatus ===
+                    'REJECTED'
+                  ? 'completed'
+                  : 'completed',
+
+              date:
+                rawStatus ===
+                  'SUBMITTED' ||
+                rawStatus ===
+                  'UNDER_VERIFICATION'
+                  ? 'In Progress'
+                  : 'Verified',
+            },
+
+
+            {
+              name:
+                'Department Officer Approval',
+
+              status:
+                rawStatus ===
+                'APPROVED'
+                  ? 'completed'
+                  : rawStatus ===
+                    'REJECTED'
+                  ? 'rejected'
+                  : rawStatus ===
+                    'UNDER_REVIEW'
+                  ? 'current'
+                  : 'pending',
+
+              date:
+                rawStatus ===
+                'APPROVED'
+                  ? 'Approved'
+                  : rawStatus ===
+                    'REJECTED'
+                  ? 'Rejected'
+                  : rawStatus ===
+                    'UNDER_REVIEW'
+                  ? 'Reviewing'
+                  : '--',
+            },
+
+
+            {
+              name:
+                'Digital Certificate / Scheme Issuance',
+
+              status:
+                rawStatus ===
+                'APPROVED'
+                  ? 'completed'
+                  : 'pending',
+
+              date:
+                rawStatus ===
+                'APPROVED'
+                  ? 'Issued'
+                  : '--',
+            },
+
+          ];
+
+
+          // ------------------------------------------------------
+          // RETURN MAPPED APPLICATION
+          // ------------------------------------------------------
 
           return {
 
@@ -292,12 +506,15 @@ export const AppProvider = ({ children }) => {
 
             rawStatus,
 
+            operation:
+              app.operation ||
+              'APPLY',
+
             serviceName:
               app.scheme_name ||
               'Education Scholarship',
 
-            serviceCategory:
-              'Social Welfare & Education',
+            serviceCategory,
 
             appliedOn:
               app.submitted_on ||
@@ -308,8 +525,7 @@ export const AppProvider = ({ children }) => {
 
             currentStep,
 
-            department:
-              'Welfare Department',
+            department,
 
             applicantName:
               app.applicant_name ||
@@ -326,84 +542,8 @@ export const AppProvider = ({ children }) => {
             updatedAt:
               'Recently',
 
-            steps: [
+            steps,
 
-              {
-                name:
-                  'Application Submitted',
-
-                status:
-                  'completed',
-
-                date:
-                  app.submitted_on ||
-                  'Day 1',
-              },
-
-              {
-                name:
-                  'Document & Consent Verification',
-
-                status:
-                  rawStatus !==
-                  'SUBMITTED'
-                    ? 'completed'
-                    : 'current',
-
-                date:
-                  rawStatus !==
-                  'SUBMITTED'
-                    ? 'Verified'
-                    : 'In Progress',
-              },
-
-              {
-                name:
-                  'Department Officer Approval',
-
-                status:
-                  rawStatus ===
-                  'APPROVED'
-                    ? 'completed'
-                    : rawStatus ===
-                      'REJECTED'
-                    ? 'rejected'
-                    : rawStatus ===
-                      'UNDER_REVIEW'
-                    ? 'current'
-                    : 'pending',
-
-                date:
-                  rawStatus ===
-                  'APPROVED'
-                    ? 'Approved'
-                    : rawStatus ===
-                      'REJECTED'
-                    ? 'Rejected'
-                    : rawStatus ===
-                      'UNDER_REVIEW'
-                    ? 'Reviewing'
-                    : '--',
-              },
-
-              {
-                name:
-                  'Digital Certificate / Scheme Issuance',
-
-                status:
-                  rawStatus ===
-                  'APPROVED'
-                    ? 'completed'
-                    : 'pending',
-
-                date:
-                  rawStatus ===
-                  'APPROVED'
-                    ? 'Issued'
-                    : '--',
-              },
-
-            ],
           };
 
         }
@@ -428,6 +568,10 @@ export const AppProvider = ({ children }) => {
 
     setEligibilityData(null);
 
+    setPendingApplication(null);
+
+    setPendingApplicationMissingConsents([]);
+
     setAuditLogs([]);
 
     setApplications([]);
@@ -436,7 +580,11 @@ export const AppProvider = ({ children }) => {
 
     setConsents([]);
 
+    setConsentHistory([]);
+
     setUser(null);
+
+    setSelectedApplicationDetails(null);
 
   }, []);
 
@@ -474,25 +622,17 @@ export const AppProvider = ({ children }) => {
 
         if (!health?.online) {
 
-          setIsBackendConnected(
-            false
-          );
+          setIsBackendConnected(false);
 
-          setBackendStatus(
-            'offline'
-          );
+          setBackendStatus('offline');
 
           return;
         }
 
 
-        setIsBackendConnected(
-          true
-        );
+        setIsBackendConnected(true);
 
-        setBackendStatus(
-          'connected'
-        );
+        setBackendStatus('connected');
 
 
         // ======================================================
@@ -515,31 +655,12 @@ export const AppProvider = ({ children }) => {
 
           if (unifiedRes) {
 
-            /*
-             * Support both possible backend formats:
-             *
-             * {
-             *   unified_citizen_record: {...}
-             * }
-             *
-             * OR
-             *
-             * {
-             *   citizen: {...},
-             *   education: [...],
-             *   income: [...],
-             *   welfare: [...]
-             * }
-             */
-
             const record =
               unifiedRes.unified_citizen_record ||
               unifiedRes;
 
 
-            setUnifiedData(
-              record
-            );
+            setUnifiedData(record);
 
 
             const citizen =
@@ -638,7 +759,7 @@ export const AppProvider = ({ children }) => {
 
 
             // --------------------------------------------------
-            // Applications
+            // APPLICATIONS
             // --------------------------------------------------
 
             if (
@@ -647,17 +768,33 @@ export const AppProvider = ({ children }) => {
               )
             ) {
 
-              setApplications(
+              console.log(
+                'APPLICATIONS FROM DASHBOARD:',
+                dashRes.applications
+              );
+
+
+              const mappedApplications =
                 mapBackendApps(
                   dashRes.applications
-                )
+                );
+
+
+              console.log(
+                'MAPPED APPLICATIONS:',
+                mappedApplications
+              );
+
+
+              setApplications(
+                mappedApplications
               );
 
             }
 
 
             // --------------------------------------------------
-            // Notifications
+            // NOTIFICATIONS
             // --------------------------------------------------
 
             if (
@@ -671,68 +808,71 @@ export const AppProvider = ({ children }) => {
                   (
                     notification,
                     index
-                  ) => ({
+                  ) => {
 
-                    id:
-                      notification.notification_id ||
-                      `NOT-${index}`,
-
-                    title:
-                      String(
-                        notification.event_type ||
-                        'Update'
-                      ).replace(
-                        /_/g,
-                        ' '
-                      ),
-
-                    message:
-                      notification.message ||
-                      'System update',
-
-                    time:
-                      notification.created_at
-                        ? new Date(
-                            notification.created_at
-                          ).toLocaleTimeString(
-                            [],
-                            {
-                              hour:
-                                '2-digit',
-                              minute:
-                                '2-digit',
-                            }
-                          )
-                        : 'Recent',
-
-                    type:
+                    const eventType =
                       String(
                         notification.event_type ||
                         ''
-                      ).includes(
-                        'APPROVED'
-                      )
-                        ? 'success'
-                        : String(
-                            notification.event_type ||
-                            ''
-                          ).includes(
-                            'REJECTED'
-                          )
-                        ? 'warning'
-                        : 'system',
+                      ).toUpperCase();
 
-                    read:
-                      String(
-                        notification.read_status ||
-                        ''
-                      ).toUpperCase() ===
-                      'READ',
 
-                    category:
-                      'update',
+                    return {
 
-                  })
+                      id:
+                        notification.notification_id ||
+                        `NOT-${index}`,
+
+                      title:
+                        String(
+                          notification.event_type ||
+                          'Update'
+                        ).replace(
+                          /_/g,
+                          ' '
+                        ),
+
+                      message:
+                        notification.message ||
+                        'System update',
+
+                      time:
+                        notification.created_at
+                          ? new Date(
+                              notification.created_at
+                            ).toLocaleTimeString(
+                              [],
+                              {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              }
+                            )
+                          : 'Recent',
+
+                      type:
+                        eventType.includes(
+                          'APPROVED'
+                        )
+                          ? 'success'
+                          : eventType.includes(
+                              'REJECTED'
+                            )
+                          ? 'warning'
+                          : 'system',
+
+                      read:
+                        String(
+                          notification.read_status ||
+                          ''
+                        ).toUpperCase() ===
+                        'READ',
+
+                      category:
+                        'update',
+
+                    };
+
+                  }
                 );
 
 
@@ -744,7 +884,7 @@ export const AppProvider = ({ children }) => {
 
 
             // --------------------------------------------------
-            // Consents
+            // CONSENTS
             // --------------------------------------------------
 
             if (
@@ -761,12 +901,71 @@ export const AppProvider = ({ children }) => {
 
           }
 
+
         } catch (error) {
 
           console.warn(
             'Dashboard fetch notice:',
             error.message
           );
+
+
+          // ====================================================
+          // FALLBACK: DIRECT APPLICATION FETCH
+          // ====================================================
+
+          try {
+
+            console.log(
+              'Dashboard failed — fetching applications directly...'
+            );
+
+
+            const applicationsRes =
+              await api.getCitizenApplications(
+                cleanCitizenId
+              );
+
+
+            console.log(
+              'DIRECT APPLICATIONS RESPONSE:',
+              applicationsRes
+            );
+
+
+            if (
+              applicationsRes &&
+              Array.isArray(
+                applicationsRes.applications
+              )
+            ) {
+
+              const mappedApplications =
+                mapBackendApps(
+                  applicationsRes.applications
+                );
+
+
+              console.log(
+                'DIRECT APPLICATIONS MAPPED:',
+                mappedApplications
+              );
+
+
+              setApplications(
+                mappedApplications
+              );
+
+            }
+
+          } catch (applicationsError) {
+
+            console.error(
+              'Direct applications fetch failed:',
+              applicationsError
+            );
+
+          }
 
         }
 
@@ -790,18 +989,6 @@ export const AppProvider = ({ children }) => {
 
 
           if (reconRes) {
-
-            /*
-             * Backend currently returns:
-             *
-             * {
-             *   citizen_id,
-             *   golden_record,
-             *   reconciliation
-             * }
-             *
-             * So store the complete response.
-             */
 
             setReconciliationData(
               reconRes
@@ -1006,19 +1193,14 @@ export const AppProvider = ({ children }) => {
           error
         );
 
-        setIsBackendConnected(
-          false
-        );
 
-        setBackendStatus(
-          'offline'
-        );
+        setIsBackendConnected(false);
+
+        setBackendStatus('offline');
 
       } finally {
 
-        setIsLoadingCitizen(
-          false
-        );
+        setIsLoadingCitizen(false);
 
       }
 
@@ -1033,73 +1215,22 @@ export const AppProvider = ({ children }) => {
   // CITIZEN LOGIN
   // ============================================================
 
-  const handleCitizenLogin = useCallback(
-    async (mobile) => {
+  const handleCitizenLogin =
+    useCallback(
+      async (mobile) => {
 
-      const cleanMobile =
-        String(
-          mobile || ''
-        ).trim();
-
-
-      if (!cleanMobile) {
-
-        showToast(
-          'Please enter your mobile number.',
-          'warning',
-          'Login'
-        );
-
-        return {
-          success: false,
-        };
-
-      }
+        const cleanMobile =
+          String(
+            mobile || ''
+          ).trim();
 
 
-      setIsLoadingCitizen(
-        true
-      );
-
-
-      try {
-
-        setBackendStatus(
-          'checking'
-        );
-
-
-        const response =
-          await api.getCitizenByMobile(
-            cleanMobile
-          );
-
-
-        console.log(
-          'CITIZEN MOBILE LOOKUP:',
-          response
-        );
-
-
-        if (
-          !response ||
-          !response.found ||
-          !response.citizen
-        ) {
-
-          setIsBackendConnected(
-            true
-          );
-
-          setBackendStatus(
-            'connected'
-          );
-
+        if (!cleanMobile) {
 
           showToast(
-            'No citizen record was found for this mobile number.',
-            'error',
-            'Citizen Not Found'
+            'Please enter your mobile number.',
+            'warning',
+            'Login'
           );
 
 
@@ -1110,143 +1241,186 @@ export const AppProvider = ({ children }) => {
         }
 
 
-        const citizen =
-          response.citizen;
+        setIsLoadingCitizen(true);
 
 
-        const actualCitizenId =
-          citizen.citizen_id;
+        try {
+
+          setBackendStatus('checking');
 
 
-        clearCitizenData();
+          const response =
+            await api.getCitizenByMobile(
+              cleanMobile
+            );
 
 
-        setUser({
+          console.log(
+            'CITIZEN MOBILE LOOKUP:',
+            response
+          );
 
-          name:
-            citizen.name ||
-            `Citizen (${actualCitizenId})`,
 
-          citizenId:
-            actualCitizenId,
+          if (
+            !response ||
+            !response.found ||
+            !response.citizen
+          ) {
 
-          email:
-            '',
+            setIsBackendConnected(true);
 
-          mobile:
-            citizen.phone ||
-            cleanMobile,
+            setBackendStatus('connected');
 
-          phone:
-            citizen.phone ||
-            cleanMobile,
 
-          dob:
-            citizen.dob ||
-            '',
+            showToast(
+              'No citizen record was found for this mobile number.',
+              'error',
+              'Citizen Not Found'
+            );
 
-          gender:
-            citizen.gender ||
-            '',
 
-          aadhaarNumber:
-            'XXXX-XXXX-XXXX',
+            return {
+              success: false,
+            };
 
-          address:
-            citizen.address ||
-            '',
+          }
 
-          initials:
-            (
+
+          const citizen =
+            response.citizen;
+
+
+          const actualCitizenId =
+            citizen.citizen_id;
+
+
+          clearCitizenData();
+
+
+          setUser({
+
+            name:
               citizen.name ||
-              'C'
-            )
-              .split(' ')
-              .map(
-                (word) =>
-                  word[0]
+              `Citizen (${actualCitizenId})`,
+
+            citizenId:
+              actualCitizenId,
+
+            email:
+              '',
+
+            mobile:
+              citizen.phone ||
+              cleanMobile,
+
+            phone:
+              citizen.phone ||
+              cleanMobile,
+
+            dob:
+              citizen.dob ||
+              '',
+
+            gender:
+              citizen.gender ||
+              '',
+
+            aadhaarNumber:
+              'XXXX-XXXX-XXXX',
+
+            address:
+              citizen.address ||
+              '',
+
+            initials:
+              (
+                citizen.name ||
+                'C'
               )
-              .join('')
-              .slice(0, 2)
-              .toUpperCase(),
+                .split(' ')
+                .map(
+                  (word) =>
+                    word[0]
+                )
+                .join('')
+                .slice(0, 2)
+                .toUpperCase(),
 
-        });
-
-
-        setCitizenId(
-          actualCitizenId
-        );
-
-
-        setCurrentPortal(
-          'citizen'
-        );
+          });
 
 
-        setActiveTab(
-          'dashboard'
-        );
+          setCitizenId(
+            actualCitizenId
+          );
 
 
-        await refreshBackendData(
-          actualCitizenId
-        );
+          setCurrentPortal(
+            'citizen'
+          );
 
 
-        showToast(
-          `Welcome, ${citizen.name || 'Citizen'}!`,
-          'success',
-          'Login Successful'
-        );
+          setActiveTab(
+            'dashboard'
+          );
 
 
-        return {
-
-          success: true,
-
-          citizen,
-
-        };
-
-      } catch (error) {
-
-        console.error(
-          'Citizen login failed:',
-          error
-        );
+          await refreshBackendData(
+            actualCitizenId
+          );
 
 
-        showToast(
-          error.message ||
-            'Unable to connect to the backend.',
-          'error',
-          'Login Failed'
-        );
+          showToast(
+            `Welcome, ${citizen.name || 'Citizen'}!`,
+            'success',
+            'Login Successful'
+          );
 
 
-        return {
+          return {
 
-          success: false,
+            success: true,
 
-          error,
+            citizen,
 
-        };
+          };
 
-      } finally {
+        } catch (error) {
 
-        setIsLoadingCitizen(
-          false
-        );
+          console.error(
+            'Citizen login failed:',
+            error
+          );
 
-      }
 
-    },
-    [
-      clearCitizenData,
-      refreshBackendData,
-      showToast,
-    ]
-  );
+          showToast(
+            error.message ||
+              'Unable to connect to the backend.',
+            'error',
+            'Login Failed'
+          );
+
+
+          return {
+
+            success: false,
+
+            error,
+
+          };
+
+        } finally {
+
+          setIsLoadingCitizen(false);
+
+        }
+
+      },
+      [
+        clearCitizenData,
+        refreshBackendData,
+        showToast,
+      ]
+    );
 
 
   // ============================================================
@@ -1254,29 +1428,26 @@ export const AppProvider = ({ children }) => {
   // ============================================================
 
   const handleLogout =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      clearCitizenData();
+        clearCitizenData();
 
-      setCitizenId(
-        null
-      );
+        setCitizenId(null);
 
-      setCurrentPortal(
-        'citizen'
-      );
+        setCurrentPortal('citizen');
 
-      setActiveTab(
-        'dashboard'
-      );
+        setActiveTab('dashboard');
 
-      setBackendStatus(
-        'checking'
-      );
+        setBackendStatus('checking');
 
-    }, [
-      clearCitizenData,
-    ]);
+        setIsBackendConnected(false);
+
+      },
+      [
+        clearCitizenData,
+      ]
+    );
 
 
   // ============================================================
@@ -1375,21 +1546,6 @@ export const AppProvider = ({ children }) => {
 
   // ============================================================
   // CREATE / SUBMIT APPLICATION
-  //
-  // IMPORTANT:
-  // This function receives the COMPLETE form object from
-  // ApplicationForm.jsx.
-  //
-  // It DOES NOT automatically grant consent.
-  //
-  // It returns the backend response unchanged so that
-  // ApplicationForm can access:
-  //
-  // result.message
-  // result.reasons
-  // result.criteria
-  // result.missing_consents
-  // result.eligibility
   // ============================================================
 
   const createApplication =
@@ -1432,10 +1588,12 @@ export const AppProvider = ({ children }) => {
           'APPLICATION SUBMISSION STARTED'
         );
 
+
         console.log(
           'Citizen ID:',
           citizenId
         );
+
 
         console.log(
           'Scheme:',
@@ -1443,16 +1601,19 @@ export const AppProvider = ({ children }) => {
         );
 
 
-        try {
+        console.log(
+          'Application Form:',
+          formData
+        );
 
-          // ----------------------------------------------------
-          // CALL FASTAPI
-          // ----------------------------------------------------
+
+        try {
 
           const response =
             await api.submitApplication(
               citizenId,
-              schemeName
+              schemeName,
+              formData || {}
             );
 
 
@@ -1462,14 +1623,19 @@ export const AppProvider = ({ children }) => {
           );
 
 
-          // ----------------------------------------------------
+          // ====================================================
           // SUCCESS
-          // ----------------------------------------------------
+          // ====================================================
 
           if (
             response?.application_submitted ===
             true
           ) {
+
+            setPendingApplication(null);
+
+            setPendingApplicationMissingConsents([]);
+
 
             showToast(
               `Application ${
@@ -1494,28 +1660,32 @@ export const AppProvider = ({ children }) => {
             );
 
 
-            // VERY IMPORTANT:
-            // Return the COMPLETE backend response.
             return response;
 
           }
 
 
-          // ----------------------------------------------------
+          // ====================================================
           // CONSENT MISSING
-          // ----------------------------------------------------
+          // ====================================================
 
-          if (
+          const missingConsents =
+            Array.isArray(
+              response?.missing_consents
+            )
+              ? response.missing_consents
+              : Array.isArray(
+                  response?.missing_departments
+                )
+              ? response.missing_departments
+              : [];
+
+
+          const consentRequired =
             response?.application_submitted ===
               false &&
             (
-              (
-                Array.isArray(
-                  response?.missing_consents
-                ) &&
-                response.missing_consents.length >
-                  0
-              ) ||
+              missingConsents.length > 0 ||
               String(
                 response?.message || ''
               )
@@ -1523,39 +1693,60 @@ export const AppProvider = ({ children }) => {
                 .includes(
                   'consent'
                 )
-            )
-          ) {
+            );
+
+
+          if (consentRequired) {
 
             console.log(
               'APPLICATION BLOCKED: CONSENT REQUIRED'
             );
 
 
+            console.log(
+              'MISSING CONSENTS:',
+              missingConsents
+            );
+
+
+            setPendingApplication({
+
+              ...formData,
+
+              serviceName:
+                schemeName,
+
+            });
+
+
+            setPendingApplicationMissingConsents(
+              missingConsents
+            );
+
+
             showToast(
-              response.message ||
-                'Required consent has not been granted.',
+              response?.message ||
+                'Required consent is needed before this application can be submitted.',
               'warning',
               'Consent Required'
             );
 
 
-            /*
-             * IMPORTANT:
-             * DO NOT automatically grant consent here.
-             *
-             * The citizen must grant it through
-             * Consent Management.
-             */
+            return {
 
+              ...response,
 
-            return response;
+              missing_consents:
+                missingConsents,
+
+            };
 
           }
 
 
-          // ----------------------------------------------------
+          // ====================================================
           // ELIGIBILITY FAILURE
-          // ----------------------------------------------------
+          // ====================================================
 
           if (
             response?.application_submitted ===
@@ -1589,22 +1780,13 @@ export const AppProvider = ({ children }) => {
             );
 
 
-            /*
-             * VERY IMPORTANT:
-             * Return complete response so ApplicationForm
-             * can display the detailed reasons.
-             */
-
             return response;
 
           }
 
 
-          // ----------------------------------------------------
-          // UNKNOWN RESPONSE
-          // ----------------------------------------------------
-
           return response;
+
 
         } catch (error) {
 
@@ -1634,10 +1816,6 @@ export const AppProvider = ({ children }) => {
             'Submission Error'
           );
 
-
-          /*
-           * Return error response instead of hiding it.
-           */
 
           return errorResponse;
 
@@ -1669,6 +1847,11 @@ export const AppProvider = ({ children }) => {
         }
 
 
+        if (!newStatus) {
+          return null;
+        }
+
+
         try {
 
           const response =
@@ -1689,6 +1872,7 @@ export const AppProvider = ({ children }) => {
 
 
           return response;
+
 
         } catch (error) {
 
@@ -1715,6 +1899,102 @@ export const AppProvider = ({ children }) => {
 
 
   // ============================================================
+  // OFFICER APPROVE APPLICATION
+  // ============================================================
+
+  const handleOfficerApproveApp =
+    useCallback(
+      async (applicationId) => {
+
+        try {
+
+          const response =
+            await updateApplicationStatus(
+              applicationId,
+              'APPROVED'
+            );
+
+
+          showToast(
+            'Application approved successfully.',
+            'success',
+            'Application Approved'
+          );
+
+
+          triggerConfetti();
+
+
+          return response;
+
+        } catch (error) {
+
+          console.error(
+            'Officer approval failed:',
+            error
+          );
+
+
+          throw error;
+
+        }
+
+      },
+      [
+        updateApplicationStatus,
+        showToast,
+        triggerConfetti,
+      ]
+    );
+
+
+  // ============================================================
+  // OFFICER REJECT APPLICATION
+  // ============================================================
+
+  const handleOfficerRejectApp =
+    useCallback(
+      async (applicationId) => {
+
+        try {
+
+          const response =
+            await updateApplicationStatus(
+              applicationId,
+              'REJECTED'
+            );
+
+
+          showToast(
+            'Application rejected successfully.',
+            'warning',
+            'Application Rejected'
+          );
+
+
+          return response;
+
+        } catch (error) {
+
+          console.error(
+            'Officer rejection failed:',
+            error
+          );
+
+
+          throw error;
+
+        }
+
+      },
+      [
+        updateApplicationStatus,
+        showToast,
+      ]
+    );
+
+
+  // ============================================================
   // GRANT CONSENT
   // ============================================================
 
@@ -1733,6 +2013,7 @@ export const AppProvider = ({ children }) => {
             'warning',
             'Consent'
           );
+
 
           return null;
 
@@ -1767,10 +2048,177 @@ export const AppProvider = ({ children }) => {
           );
 
 
+          // ====================================================
+          // REFRESH LIVE DATA
+          // ====================================================
+
           await refreshBackendData(
             citizenId
           );
 
+
+          // ====================================================
+          // RESUME PENDING APPLICATION
+          // ====================================================
+
+          if (pendingApplication) {
+
+            console.log(
+              'PENDING APPLICATION FOUND — RETRYING SUBMISSION'
+            );
+
+
+            console.log(
+              'Pending application:',
+              pendingApplication
+            );
+
+
+            try {
+
+              const resumedResponse =
+                await api.submitApplication(
+                  citizenId,
+                  pendingApplication.serviceName ||
+                    'Education Scholarship',
+                  pendingApplication
+                );
+
+
+              console.log(
+                'RESUMED APPLICATION RESULT:',
+                resumedResponse
+              );
+
+
+              // ------------------------------------------------
+              // RESUMED SUCCESS
+              // ------------------------------------------------
+
+              if (
+                resumedResponse?.application_submitted ===
+                true
+              ) {
+
+                setPendingApplication(null);
+
+                setPendingApplicationMissingConsents([]);
+
+
+                showToast(
+                  `Application ${
+                    resumedResponse.application?.application_id ||
+                    'submitted'
+                  } submitted successfully after consent.`,
+                  'success',
+                  'Application Submitted'
+                );
+
+
+                triggerConfetti();
+
+
+                await refreshBackendData(
+                  citizenId
+                );
+
+
+                setActiveTab(
+                  'tracking'
+                );
+
+
+                return resumedResponse;
+
+              }
+
+
+              // ------------------------------------------------
+              // MORE CONSENTS REQUIRED
+              // ------------------------------------------------
+
+              const remainingConsents =
+                Array.isArray(
+                  resumedResponse?.missing_consents
+                )
+                  ? resumedResponse.missing_consents
+                  : Array.isArray(
+                      resumedResponse?.missing_departments
+                    )
+                  ? resumedResponse.missing_departments
+                  : [];
+
+
+              if (
+                remainingConsents.length > 0
+              ) {
+
+                setPendingApplicationMissingConsents(
+                  remainingConsents
+                );
+
+
+                showToast(
+                  'Additional consent is still required.',
+                  'warning',
+                  'Consent Required'
+                );
+
+
+                return resumedResponse;
+
+              }
+
+
+              // ------------------------------------------------
+              // ELIGIBILITY FAILURE
+              // ------------------------------------------------
+
+              if (
+                resumedResponse?.application_submitted ===
+                false
+              ) {
+
+                showToast(
+                  resumedResponse?.message ||
+                    resumedResponse?.eligibility?.message ||
+                    'Application could not be submitted.',
+                  'warning',
+                  'Application'
+                );
+
+              }
+
+
+              return resumedResponse;
+
+
+            } catch (resumeError) {
+
+              console.error(
+                'Pending application resume failed:',
+                resumeError
+              );
+
+
+              showToast(
+                resumeError?.message ||
+                  'Unable to resume the pending application.',
+                'error',
+                'Application Resume Failed'
+              );
+
+
+              throw resumeError;
+
+            }
+
+          }
+
+
+          // ====================================================
+          // NORMAL CONSENT SUCCESS
+          // ====================================================
 
           showToast(
             'Consent granted successfully.',
@@ -1780,6 +2228,7 @@ export const AppProvider = ({ children }) => {
 
 
           return response;
+
 
         } catch (error) {
 
@@ -1804,20 +2253,16 @@ export const AppProvider = ({ children }) => {
       },
       [
         citizenId,
+        pendingApplication,
         refreshBackendData,
         showToast,
+        triggerConfetti,
       ]
     );
 
 
   // ============================================================
   // TOGGLE CONSENT
-  //
-  // Used by ConsentManagement.jsx.
-  //
-  // IMPORTANT:
-  // Backend currently supports granting consent.
-  // We do not pretend that a revoke operation exists.
   // ============================================================
 
   const handleToggleConsent =
@@ -1828,9 +2273,9 @@ export const AppProvider = ({ children }) => {
         target = null
       ) => {
 
-        // ------------------------------------------------------
-        // TURNING ON / GRANTING
-        // ------------------------------------------------------
+        // ======================================================
+        // TURN ON / GRANT
+        // ======================================================
 
         if (nextState) {
 
@@ -1841,6 +2286,7 @@ export const AppProvider = ({ children }) => {
               'warning',
               'Consent'
             );
+
 
             return;
 
@@ -1868,38 +2314,40 @@ export const AppProvider = ({ children }) => {
               'Education Scholarship';
 
 
-            await api.grantConsent(
-              citizenId,
+            await grantConsent(
               dataProvider,
               dataType,
               purpose
             );
 
 
-            // Refresh real backend data
-            await refreshBackendData(
-              citizenId
-            );
+            // ==================================================
+            // UPDATE LOCAL UI
+            // ==================================================
 
-
-            // Update local representation
             setConsents(
               (previous) => {
 
                 const exists =
                   previous.some(
                     (item) =>
-                      item.id === id
+                      item.id === id ||
+                      item.consent_id === id
                   );
 
 
                 if (!exists) {
 
                   return [
+
                     ...previous,
 
                     {
+
                       id,
+
+                      consent_id:
+                        id,
 
                       name:
                         target?.name ||
@@ -1922,7 +2370,9 @@ export const AppProvider = ({ children }) => {
 
                       status:
                         'GRANTED',
+
                     },
+
                   ];
 
                 }
@@ -1932,10 +2382,12 @@ export const AppProvider = ({ children }) => {
                   (item) => {
 
                     if (
-                      item.id === id
+                      item.id === id ||
+                      item.consent_id === id
                     ) {
 
                       return {
+
                         ...item,
 
                         enabled:
@@ -1943,9 +2395,11 @@ export const AppProvider = ({ children }) => {
 
                         status:
                           'GRANTED',
+
                       };
 
                     }
+
 
                     return item;
 
@@ -1956,11 +2410,9 @@ export const AppProvider = ({ children }) => {
             );
 
 
-            showToast(
-              `${target?.name || dataProvider} consent granted.`,
-              'success',
-              'Consent Updated'
-            );
+            // NOTE:
+            // grantConsent already shows a success toast.
+            // We do not show another duplicate toast here.
 
 
           } catch (error) {
@@ -1971,12 +2423,8 @@ export const AppProvider = ({ children }) => {
             );
 
 
-            showToast(
-              error.message ||
-                'Unable to grant consent.',
-              'error',
-              'Consent Failed'
-            );
+            // grantConsent already displays
+            // the backend error toast.
 
           }
 
@@ -1986,19 +2434,9 @@ export const AppProvider = ({ children }) => {
         }
 
 
-        // ------------------------------------------------------
-        // TURNING OFF
-        // ------------------------------------------------------
-
-        /*
-         * There is no backend revoke endpoint in the current
-         * prototype.
-         *
-         * Therefore do NOT pretend that the backend consent
-         * was revoked.
-         *
-         * We only update the local UI state.
-         */
+        // ======================================================
+        // TURN OFF
+        // ======================================================
 
         setConsents(
           (previous) =>
@@ -2006,7 +2444,8 @@ export const AppProvider = ({ children }) => {
               (item) => {
 
                 if (
-                  item.id === id
+                  item.id === id ||
+                  item.consent_id === id
                 ) {
 
                   showToast(
@@ -2017,13 +2456,16 @@ export const AppProvider = ({ children }) => {
 
 
                   return {
+
                     ...item,
 
                     enabled:
                       false,
+
                   };
 
                 }
+
 
                 return item;
 
@@ -2034,7 +2476,7 @@ export const AppProvider = ({ children }) => {
       },
       [
         citizenId,
-        refreshBackendData,
+        grantConsent,
         showToast,
       ]
     );
@@ -2077,6 +2519,10 @@ export const AppProvider = ({ children }) => {
     officerId,
 
     setOfficerId,
+
+    handleOfficerApproveApp,
+
+    handleOfficerRejectApp,
 
 
     // ----------------------------------------------------------
@@ -2133,6 +2579,10 @@ export const AppProvider = ({ children }) => {
     reconciliationData,
 
     eligibilityData,
+
+    pendingApplication,
+
+    pendingApplicationMissingConsents,
 
     auditLogs,
 
@@ -2233,16 +2683,14 @@ export const AppProvider = ({ children }) => {
   };
 
 
+  // ============================================================
+  // PROVIDER
+  // ============================================================
+
   return (
-
-    <AppContext.Provider
-      value={value}
-    >
-
+    <AppContext.Provider value={value}>
       {children}
-
     </AppContext.Provider>
-
   );
 
 };
