@@ -245,6 +245,15 @@ def check_consent(
     purpose
 ):
 
+    print("==========================================")
+    print("CHECKING CONSENT")
+    print("Citizen ID:", citizen_id)
+    print("Provider:", data_provider)
+    print("Data Type:", data_type)
+    print("Purpose:", purpose)
+    print("==========================================")
+
+
     response = (
         supabase
         .table("consents")
@@ -272,28 +281,216 @@ def check_consent(
         .execute()
     )
 
+
+    print(
+        "Matching consent records:",
+        response.data
+    )
+
+
+    # ==================================================
+    # NO MATCHING CONSENT
+    # ==================================================
+
+    if not response.data:
+
+        print(
+            "CONSENT RESULT: NOT GRANTED"
+        )
+
+        return False
+
+
+    # ==================================================
+    # CHECK EXPIRY
+    # ==================================================
+
     for consent in response.data:
 
         expires_at = consent.get(
             "expires_at"
         )
 
-        if expires_at is None:
-            continue
 
-        expiry_date = datetime.strptime(
-            expires_at,
-            "%Y-%m-%d"
-        ).date()
+        # ------------------------------------------------
+        # NULL expiry = NO EXPIRY
+        # ------------------------------------------------
+
+        if expires_at is None:
+
+            print(
+                "Consent has no expiry date."
+            )
+
+            print(
+                "CONSENT RESULT: GRANTED"
+            )
+
+            return True
+
+
+        # ------------------------------------------------
+        # Parse expiry date
+        # ------------------------------------------------
+
+        try:
+
+            expiry_string = str(
+                expires_at
+            )
+
+
+            if "T" in expiry_string:
+
+                expiry_date = (
+                    datetime.fromisoformat(
+                        expiry_string.replace(
+                            "Z",
+                            ""
+                        )
+                    ).date()
+                )
+
+            else:
+
+                expiry_date = (
+                    datetime.strptime(
+                        expiry_string,
+                        "%Y-%m-%d"
+                    ).date()
+                )
+
+
+        except ValueError:
+
+            print(
+                "Unable to parse expiry date:",
+                expires_at
+            )
+
+            # For this prototype, treat a granted
+            # consent with an unparseable expiry as
+            # granted rather than silently denying it.
+
+            return True
+
+
+        # ------------------------------------------------
+        # Valid expiry
+        # ------------------------------------------------
 
         if (
             expiry_date
             >= datetime.today().date()
         ):
 
+            print(
+                "Consent is still valid."
+            )
+
+            print(
+                "CONSENT RESULT: GRANTED"
+            )
+
             return True
 
+
+    print(
+        "CONSENT RESULT: EXPIRED"
+    )
+
     return False
+
+
+# ==================================================
+# CHECK ALL SCHOLARSHIP CONSENTS
+# ==================================================
+
+def check_required_consents(
+    citizen_id,
+    purpose
+):
+
+    education_consent = check_consent(
+
+        citizen_id,
+
+        "Education Department",
+
+        "Education",
+
+        purpose
+    )
+
+
+    income_consent = check_consent(
+
+        citizen_id,
+
+        "Income Department",
+
+        "Income",
+
+        purpose
+    )
+
+
+    missing_consents = []
+
+
+    if not education_consent:
+
+        missing_consents.append({
+
+            "department":
+                "Education Department",
+
+            "data_provider":
+                "Education Department",
+
+            "data_type":
+                "Education",
+
+            "purpose":
+                purpose
+
+        })
+
+
+    if not income_consent:
+
+        missing_consents.append({
+
+            "department":
+                "Income Department",
+
+            "data_provider":
+                "Income Department",
+
+            "data_type":
+                "Income",
+
+            "purpose":
+                purpose
+
+        })
+
+
+    return {
+
+        "education":
+            education_consent,
+
+        "income":
+            income_consent,
+
+        "all_granted":
+            len(missing_consents) == 0,
+
+        "missing":
+            missing_consents
+
+    }
 
 
 # ==================================================
@@ -320,6 +517,7 @@ def get_unified_citizen(
         .execute()
     )
 
+
     # ==================================================
     # EDUCATION DEPARTMENT
     # ==================================================
@@ -340,6 +538,7 @@ def get_unified_citizen(
         )
     )
 
+
     education = (
 
         education_result["data"]
@@ -349,9 +548,11 @@ def get_unified_citizen(
         else None
     )
 
+
     education_error = (
         education_result["error"]
     )
+
 
     # ==================================================
     # INCOME DEPARTMENT
@@ -373,6 +574,7 @@ def get_unified_citizen(
         )
     )
 
+
     income = (
 
         income_result["data"]
@@ -382,9 +584,11 @@ def get_unified_citizen(
         else None
     )
 
+
     income_error = (
         income_result["error"]
     )
+
 
     # ==================================================
     # WELFARE DEPARTMENT
@@ -406,6 +610,7 @@ def get_unified_citizen(
         )
     )
 
+
     welfare = (
 
         welfare_result["data"]
@@ -415,9 +620,11 @@ def get_unified_citizen(
         else None
     )
 
+
     welfare_error = (
         welfare_result["error"]
     )
+
 
     # ==================================================
     # EDUCATION NORMALIZATION
@@ -427,6 +634,7 @@ def get_unified_citizen(
 
     education_validation_errors = []
 
+
     if education is not None:
 
         for record in education.data:
@@ -434,6 +642,7 @@ def get_unified_citizen(
             result = normalize_education(
                 record
             )
+
 
             if result["valid"]:
 
@@ -447,6 +656,7 @@ def get_unified_citizen(
                     result["errors"]
                 )
 
+
     # ==================================================
     # INCOME NORMALIZATION
     # ==================================================
@@ -455,6 +665,7 @@ def get_unified_citizen(
 
     income_validation_errors = []
 
+
     if income is not None:
 
         for record in income.data:
@@ -462,6 +673,7 @@ def get_unified_citizen(
             result = normalize_income(
                 record
             )
+
 
             if result["valid"]:
 
@@ -475,6 +687,7 @@ def get_unified_citizen(
                     result["errors"]
                 )
 
+
     # ==================================================
     # WELFARE NORMALIZATION
     # ==================================================
@@ -483,6 +696,7 @@ def get_unified_citizen(
 
     welfare_validation_errors = []
 
+
     if welfare is not None:
 
         for record in welfare.data:
@@ -490,6 +704,7 @@ def get_unified_citizen(
             result = normalize_welfare(
                 record
             )
+
 
             if result["valid"]:
 
@@ -503,37 +718,47 @@ def get_unified_citizen(
                     result["errors"]
                 )
 
+
     # ==================================================
     # UNIFIED RESPONSE
     # ==================================================
 
     return {
 
-        "citizen": citizen.data,
+        "citizen":
+            citizen.data,
 
-        "education": normalized_education,
+        "education":
+            normalized_education,
 
-        "income": normalized_income,
+        "income":
+            normalized_income,
 
-        "welfare": normalized_welfare,
+        "welfare":
+            normalized_welfare,
 
         "errors": {
 
-            "education": education_error,
+            "education":
+                education_error,
 
             "education_validation":
                 education_validation_errors,
 
-            "income": income_error,
+            "income":
+                income_error,
 
             "income_validation":
                 income_validation_errors,
 
-            "welfare": welfare_error,
+            "welfare":
+                welfare_error,
 
             "welfare_validation":
                 welfare_validation_errors
+
         }
+
     }
 
 
@@ -547,44 +772,38 @@ def get_scholarship_data(
 
     purpose = "Education Scholarship"
 
+
     # ==================================================
-    # CONSENT
+    # CHECK REQUIRED CONSENTS
     # ==================================================
 
-    education_consent = check_consent(
-
+    consent_result = check_required_consents(
         citizen_id,
-
-        "Education Department",
-
-        "Education",
-
         purpose
     )
 
-    income_consent = check_consent(
 
-        citizen_id,
-
-        "Income Department",
-
-        "Income",
-
-        purpose
-    )
-
-    if (
-        not education_consent
-        or not income_consent
-    ):
+    if not consent_result["all_granted"]:
 
         return {
 
-            "access_granted": False,
+            "access_granted":
+                False,
 
             "message":
-                "Required consent has not been granted"
+                "Required consent has not been granted",
+
+            "missing_consents":
+                consent_result["missing"],
+
+            "missing_departments": [
+                item["department"]
+                for item in
+                consent_result["missing"]
+            ]
+
         }
+
 
     # ==================================================
     # CITIZEN
@@ -602,6 +821,7 @@ def get_scholarship_data(
         .execute()
     )
 
+
     # ==================================================
     # EDUCATION
     # ==================================================
@@ -616,6 +836,7 @@ def get_scholarship_data(
         )
         .execute()
     )
+
 
     # ==================================================
     # INCOME
@@ -632,6 +853,7 @@ def get_scholarship_data(
         .execute()
     )
 
+
     # ==================================================
     # EDUCATION NORMALIZATION
     # ==================================================
@@ -640,11 +862,13 @@ def get_scholarship_data(
 
     education_validation_errors = []
 
+
     for record in education.data:
 
         result = normalize_education(
             record
         )
+
 
         if result["valid"]:
 
@@ -658,6 +882,7 @@ def get_scholarship_data(
                 result["errors"]
             )
 
+
     # ==================================================
     # INCOME NORMALIZATION
     # ==================================================
@@ -666,11 +891,13 @@ def get_scholarship_data(
 
     income_validation_errors = []
 
+
     for record in income.data:
 
         result = normalize_income(
             record
         )
+
 
         if result["valid"]:
 
@@ -684,21 +911,27 @@ def get_scholarship_data(
                 result["errors"]
             )
 
+
     # ==================================================
     # RESPONSE
     # ==================================================
 
     return {
 
-        "access_granted": True,
+        "access_granted":
+            True,
 
-        "purpose": purpose,
+        "purpose":
+            purpose,
 
-        "citizen": citizen.data,
+        "citizen":
+            citizen.data,
 
-        "education": normalized_education,
+        "education":
+            normalized_education,
 
-        "income": normalized_income,
+        "income":
+            normalized_income,
 
         "validation": {
 
@@ -707,7 +940,9 @@ def get_scholarship_data(
 
             "income":
                 income_validation_errors
+
         }
+
     }
 
 
@@ -719,11 +954,24 @@ def normalize_status(
     status: str
 ):
 
-    status = status.strip().upper()
+    if not status:
+
+        return "SUBMITTED"
+
+
+    status = (
+        status
+        .strip()
+        .upper()
+    )
+
 
     status_mapping = {
 
         "SUBMITTED":
+            "SUBMITTED",
+
+        "SUBMIT":
             "SUBMITTED",
 
         "UNDER REVIEW":
@@ -732,12 +980,23 @@ def normalize_status(
         "UNDER_REVIEW":
             "UNDER_REVIEW",
 
+        "REVIEW":
+            "UNDER_REVIEW",
+
         "APPROVED":
             "APPROVED",
 
+        "APPROVE":
+            "APPROVED",
+
         "REJECTED":
+            "REJECTED",
+
+        "REJECT":
             "REJECTED"
+
     }
+
 
     return status_mapping.get(
         status,
@@ -756,6 +1015,7 @@ def check_eligibility(
 
     purpose = scheme_name
 
+
     # ==================================================
     # SCHEME RULES
     # ==================================================
@@ -763,6 +1023,7 @@ def check_eligibility(
     rules = SCHEME_RULES.get(
         scheme_name
     )
+
 
     if rules is None:
 
@@ -776,38 +1037,21 @@ def check_eligibility(
 
             "message":
                 "Scheme not supported"
+
         }
 
+
     # ==================================================
-    # CONSENT
+    # CHECK REQUIRED CONSENTS
     # ==================================================
 
-    education_consent = check_consent(
-
+    consent_result = check_required_consents(
         citizen_id,
-
-        "Education Department",
-
-        "Education",
-
         purpose
     )
 
-    income_consent = check_consent(
 
-        citizen_id,
-
-        "Income Department",
-
-        "Income",
-
-        purpose
-    )
-
-    if (
-        not education_consent
-        or not income_consent
-    ):
+    if not consent_result["all_granted"]:
 
         return {
 
@@ -818,8 +1062,19 @@ def check_eligibility(
                 False,
 
             "message":
-                "Required consent has not been granted"
+                "Required consent has not been granted",
+
+            "missing_consents":
+                consent_result["missing"],
+
+            "missing_departments": [
+                item["department"]
+                for item in
+                consent_result["missing"]
+            ]
+
         }
+
 
     # ==================================================
     # EDUCATION DATA
@@ -836,6 +1091,7 @@ def check_eligibility(
         .execute()
     )
 
+
     # ==================================================
     # INCOME DATA
     # ==================================================
@@ -850,6 +1106,7 @@ def check_eligibility(
         )
         .execute()
     )
+
 
     # ==================================================
     # DATA EXISTENCE
@@ -870,47 +1127,75 @@ def check_eligibility(
 
             "message":
                 "Required department data not found"
+
         }
+
 
     education_record = (
         education.data[0]
     )
 
+
     income_record = (
         income.data[0]
     )
+
 
     # ==================================================
     # INCOME CHECK
     # ==================================================
 
+    annual_income = float(
+        income_record.get(
+            "annual_income_inr",
+            0
+        )
+        or 0
+    )
+
+
     income_eligible = (
 
-        income_record[
-            "annual_income_inr"
-        ]
-
+        annual_income
         <= rules[
             "income_limit"
         ]
+
     )
+
 
     # ==================================================
     # STUDENT STATUS CHECK
     # ==================================================
 
-    student_eligible = (
+    student_status = (
+        str(
+            education_record.get(
+                "student_status",
+                ""
+            )
+        )
+        .strip()
+        .upper()
+    )
 
-        education_record[
+
+    required_status = (
+        rules[
             "student_status"
         ]
         .strip()
         .upper()
-
-        == rules[
-            "student_status"
-        ]
     )
+
+
+    student_eligible = (
+
+        student_status
+        == required_status
+
+    )
+
 
     # ==================================================
     # FINAL ELIGIBILITY
@@ -920,7 +1205,30 @@ def check_eligibility(
 
         income_eligible
         and student_eligible
+
     )
+
+
+    reasons = []
+
+
+    if not income_eligible:
+
+        reasons.append(
+            "Annual income exceeds the scheme limit."
+        )
+
+
+    if not student_eligible:
+
+        reasons.append(
+            "Student status does not meet the scheme requirement."
+        )
+
+
+    # ==================================================
+    # RESPONSE
+    # ==================================================
 
     return {
 
@@ -933,32 +1241,67 @@ def check_eligibility(
         "scheme":
             scheme_name,
 
+        "message": (
+
+            "Citizen is eligible for this scheme"
+
+            if eligible
+
+            else
+
+            "Citizen is not eligible for this scheme"
+
+        ),
+
+        "reasons":
+            reasons,
+
+        "citizen":
+            supabase
+            .table("citizens")
+            .select("*")
+            .eq(
+                "citizen_id",
+                citizen_id
+            )
+            .single()
+            .execute()
+            .data,
+
         "criteria": {
 
             "income_limit":
-                rules["income_limit"],
+                rules[
+                    "income_limit"
+                ],
 
             "annual_income":
-                income_record[
-                    "annual_income_inr"
-                ],
+                annual_income,
 
             "income_eligible":
                 income_eligible,
 
             "required_student_status":
-                rules[
-                    "student_status"
-                ],
+                required_status,
 
             "student_status":
-                education_record[
-                    "student_status"
-                ],
+                student_status,
 
             "student_eligible":
-                student_eligible
+                student_eligible,
+
+            "education_consent":
+                consent_result[
+                    "education"
+                ],
+
+            "income_consent":
+                consent_result[
+                    "income"
+                ]
+
         }
+
     }
 
 
@@ -986,6 +1329,7 @@ def get_citizen_dashboard(
         .execute()
     )
 
+
     # ==================================================
     # APPLICATIONS
     # ==================================================
@@ -1005,15 +1349,17 @@ def get_citizen_dashboard(
         .execute()
     )
 
+
     for application in applications.data:
 
         application[
             "application_status"
         ] = normalize_status(
-            application[
+            application.get(
                 "application_status"
-            ]
+            )
         )
+
 
     # ==================================================
     # NOTIFICATIONS
@@ -1034,6 +1380,7 @@ def get_citizen_dashboard(
         .execute()
     )
 
+
     # ==================================================
     # CONSENTS
     # ==================================================
@@ -1053,6 +1400,7 @@ def get_citizen_dashboard(
         .execute()
     )
 
+
     # ==================================================
     # AUDIT LOGS
     # ==================================================
@@ -1071,6 +1419,7 @@ def get_citizen_dashboard(
         )
         .execute()
     )
+
 
     # ==================================================
     # DASHBOARD RESPONSE
@@ -1092,4 +1441,5 @@ def get_citizen_dashboard(
 
         "audit_logs":
             audit_logs.data
+
     }

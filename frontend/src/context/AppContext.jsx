@@ -1,536 +1,2277 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import confetti from 'canvas-confetti';
-import { 
-  INITIAL_SERVICES, 
-  SERVICE_CATEGORIES,
-  INITIAL_APPLICATIONS, 
-  INITIAL_NOTIFICATIONS, 
-  INITIAL_CONSENTS, 
-  CONSENT_HISTORY 
-} from '../data/mockData';
-import { api } from '../services/api';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react';
 
-const AppContext = createContext();
+import confetti from 'canvas-confetti';
+
+import {
+  INITIAL_SERVICES,
+  SERVICE_CATEGORIES,
+  INITIAL_APPLICATIONS,
+  INITIAL_NOTIFICATIONS,
+  INITIAL_CONSENTS,
+  CONSENT_HISTORY,
+} from '../data/mockData';
+
+import api from '../services/api';
+
+const AppContext = createContext(null);
+
 
 export const AppProvider = ({ children }) => {
-  // Portal & Role Switching (Citizen, Officer, Admin) - No Auth Gate
-  const [currentPortal, setCurrentPortal] = useState('citizen'); // 'citizen' | 'officer' | 'admin'
-  const [citizenId, setCitizenId] = useState('C001');
-  const [officerId, setOfficerId] = useState('U002');
 
-  // Navigation states
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isSidebarPinned, setIsSidebarPinned] = useState(false);
+  // ============================================================
+  // PORTAL / SESSION
+  // ============================================================
 
-  // Backend Connectivity State
-  const [isBackendConnected, setIsBackendConnected] = useState(false);
-  const [backendStatus, setBackendStatus] = useState('checking'); // 'checking' | 'connected' | 'offline'
+  const [currentPortal, setCurrentPortal] =
+    useState('citizen');
 
-  // Live Backend Data States
-  const [unifiedData, setUnifiedData] = useState(null);
-  const [citizenDashboardData, setCitizenDashboardData] = useState(null);
-  const [reconciliationData, setReconciliationData] = useState(null);
-  const [eligibilityData, setEligibilityData] = useState(null);
-  const [auditLogs, setAuditLogs] = useState([]);
-  const [adminDashboardData, setAdminDashboardData] = useState(null);
-  const [healthData, setHealthData] = useState(null);
+  const [citizenId, setCitizenId] =
+    useState(null);
 
-  // User Profile (auto-populated from FastAPI / Supabase)
-  const [user, setUser] = useState({
-    name: 'Gokul (C001)',
-    citizenId: 'C001',
-    email: 'gokul@interop.gov.in',
-    mobile: '+91 98765 43210',
-    dob: '2007-05-04',
-    gender: 'Male',
-    aadhaarNumber: 'XXXX-XXXX-4021',
-    address: 'Coimbatore, Tamil Nadu',
-    initials: 'G'
-  });
+  const [officerId, setOfficerId] =
+    useState('U002');
 
-  // Services & Categories
-  const [services] = useState(INITIAL_SERVICES);
-  const [categories] = useState(SERVICE_CATEGORIES);
 
-  // Applications, Notifications, Consents
-  const [applications, setApplications] = useState(INITIAL_APPLICATIONS);
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
-  const [consents, setConsents] = useState(INITIAL_CONSENTS);
-  const [consentHistory, setConsentHistory] = useState(CONSENT_HISTORY);
+  // ============================================================
+  // NAVIGATION
+  // ============================================================
 
-  // Modals & UI Selection
-  const [selectedServiceModal, setSelectedServiceModal] = useState(null);
-  const [selectedApplicationDetails, setSelectedApplicationDetails] = useState(null);
-  const [isAadhaarModalOpen, setIsAadhaarModalOpen] = useState(false);
-  const [toast, setToast] = useState(null);
+  const [activeTab, setActiveTab] =
+    useState('dashboard');
 
-  const showToast = useCallback((message, type = 'success', title = '') => {
-    setToast({ message, type, title });
-    setTimeout(() => {
-      setToast(null);
-    }, 4500);
-  }, []);
+  const [searchQuery, setSearchQuery] =
+    useState('');
+
+  const [selectedCategory, setSelectedCategory] =
+    useState('All');
+
+  const [isSidebarOpen, setIsSidebarOpen] =
+    useState(false);
+
+  const [isSidebarPinned, setIsSidebarPinned] =
+    useState(false);
+
+
+  // ============================================================
+  // BACKEND CONNECTION
+  // ============================================================
+
+  const [isBackendConnected, setIsBackendConnected] =
+    useState(false);
+
+  const [backendStatus, setBackendStatus] =
+    useState('checking');
+
+  const [isLoadingCitizen, setIsLoadingCitizen] =
+    useState(false);
+
+
+  // ============================================================
+  // LIVE BACKEND DATA
+  // ============================================================
+
+  const [unifiedData, setUnifiedData] =
+    useState(null);
+
+  const [citizenDashboardData, setCitizenDashboardData] =
+    useState(null);
+
+  const [reconciliationData, setReconciliationData] =
+    useState(null);
+
+  const [eligibilityData, setEligibilityData] =
+    useState(null);
+
+  const [auditLogs, setAuditLogs] =
+    useState([]);
+
+  const [adminDashboardData, setAdminDashboardData] =
+    useState(null);
+
+  const [healthData, setHealthData] =
+    useState(null);
+
+
+  // ============================================================
+  // USER PROFILE
+  // ============================================================
+
+  const [user, setUser] =
+    useState(null);
+
+
+  // ============================================================
+  // STATIC SERVICE CONFIGURATION
+  // ============================================================
+
+  const [services] =
+    useState(INITIAL_SERVICES);
+
+  const [categories] =
+    useState(SERVICE_CATEGORIES);
+
+
+  // ============================================================
+  // APPLICATIONS / NOTIFICATIONS / CONSENTS
+  // ============================================================
+
+  const [applications, setApplications] =
+    useState(
+      Array.isArray(INITIAL_APPLICATIONS)
+        ? INITIAL_APPLICATIONS
+        : []
+    );
+
+  const [notifications, setNotifications] =
+    useState(
+      Array.isArray(INITIAL_NOTIFICATIONS)
+        ? INITIAL_NOTIFICATIONS
+        : []
+    );
+
+  const [consents, setConsents] =
+    useState(
+      Array.isArray(INITIAL_CONSENTS)
+        ? INITIAL_CONSENTS
+        : []
+    );
+
+  const [consentHistory, setConsentHistory] =
+    useState(
+      Array.isArray(CONSENT_HISTORY)
+        ? CONSENT_HISTORY
+        : []
+    );
+
+
+  // ============================================================
+  // UI / MODALS
+  // ============================================================
+
+  const [selectedServiceModal, setSelectedServiceModal] =
+    useState(null);
+
+  const [selectedApplicationDetails, setSelectedApplicationDetails] =
+    useState(null);
+
+  const [isAadhaarModalOpen, setIsAadhaarModalOpen] =
+    useState(false);
+
+  const [toast, setToast] =
+    useState(null);
+
+
+  // ============================================================
+  // TOAST
+  // ============================================================
+
+  const showToast = useCallback(
+    (
+      message,
+      type = 'success',
+      title = ''
+    ) => {
+
+      setToast({
+        message,
+        type,
+        title,
+      });
+
+      setTimeout(() => {
+        setToast(null);
+      }, 4500);
+
+    },
+    []
+  );
+
+
+  // ============================================================
+  // CONFETTI
+  // ============================================================
 
   const triggerConfetti = useCallback(() => {
+
     confetti({
       particleCount: 100,
       spread: 70,
-      origin: { y: 0.6 }
+      origin: {
+        y: 0.6,
+      },
     });
+
   }, []);
 
-  // Helper to map backend applications to frontend structure
-  const mapBackendApps = (apps) => {
-    if (!Array.isArray(apps)) return [];
-    return apps.map((app, idx) => {
-      const rawStatus = (app.application_status || 'SUBMITTED').toUpperCase();
-      let statusLabel = 'In Progress';
-      let currentStep = 'Under Review';
 
-      if (rawStatus === 'APPROVED') {
-        statusLabel = 'Approved';
-        currentStep = 'Digital Delivery';
-      } else if (rawStatus === 'REJECTED') {
-        statusLabel = 'Rejected';
-        currentStep = 'Rejected by Reviewer';
-      } else if (rawStatus === 'SUBMITTED') {
-        statusLabel = 'In Progress';
-        currentStep = 'Submitted & Queued';
-      } else if (rawStatus === 'UNDER_REVIEW') {
-        statusLabel = 'In Progress';
-        currentStep = 'Department Officer Review';
+  // ============================================================
+  // MAP BACKEND APPLICATIONS
+  // ============================================================
+
+  const mapBackendApps = useCallback(
+    (apps) => {
+
+      if (!Array.isArray(apps)) {
+        return [];
       }
 
-      return {
-        id: app.application_id || `APP-${idx + 1}`,
-        rawStatus: rawStatus,
-        serviceName: app.scheme_name || 'Education Scholarship',
-        serviceCategory: 'Social Welfare & Education',
-        appliedOn: app.submitted_on || 'Today',
-        status: statusLabel,
-        currentStep: currentStep,
-        department: 'Welfare Department',
-        applicantName: app.applicant_name || 'Citizen',
-        applicantRef: app.applicant_ref || citizenId,
-        birthDate: app.birth_date || '--',
-        riskScore: 'Low (0.02)',
-        ocrDetails: { nameMatch: '100%', faceMatch: '98.5%' },
-        updatedAt: 'Recently',
-        steps: [
-          { name: 'Application Submitted', status: 'completed', date: app.submitted_on || 'Day 1' },
-          { 
-            name: 'Document & Consent Verification', 
-            status: rawStatus !== 'SUBMITTED' ? 'completed' : 'current', 
-            date: rawStatus !== 'SUBMITTED' ? 'Verified' : 'In Progress' 
-          },
-          { 
-            name: 'Department Officer Approval', 
-            status: rawStatus === 'APPROVED' ? 'completed' : rawStatus === 'REJECTED' ? 'rejected' : rawStatus === 'UNDER_REVIEW' ? 'current' : 'pending', 
-            date: rawStatus === 'APPROVED' ? 'Approved by U002' : rawStatus === 'REJECTED' ? 'Rejected' : rawStatus === 'UNDER_REVIEW' ? 'Reviewing' : '--' 
-          },
-          { 
-            name: 'Digital Certificate / Scheme Issuance', 
-            status: rawStatus === 'APPROVED' ? 'completed' : 'pending', 
-            date: rawStatus === 'APPROVED' ? 'Issued' : '--' 
-          }
-        ]
-      };
-    });
-  };
+      return apps.map(
+        (app, index) => {
 
-  // Main Data Refresh function from FastAPI backend
-  const refreshBackendData = useCallback(async (targetCitizenId = citizenId) => {
-    try {
-      const health = await api.checkBackendHealth();
-      if (!health.online) {
-        setIsBackendConnected(false);
-        setBackendStatus('offline');
+          const rawStatus = String(
+            app.application_status ||
+            'SUBMITTED'
+          ).toUpperCase();
+
+
+          let statusLabel =
+            'In Progress';
+
+          let currentStep =
+            'Under Review';
+
+
+          if (
+            rawStatus ===
+            'APPROVED'
+          ) {
+
+            statusLabel =
+              'Approved';
+
+            currentStep =
+              'Digital Delivery';
+
+          } else if (
+            rawStatus ===
+            'REJECTED'
+          ) {
+
+            statusLabel =
+              'Rejected';
+
+            currentStep =
+              'Rejected by Reviewer';
+
+          } else if (
+            rawStatus ===
+            'SUBMITTED'
+          ) {
+
+            statusLabel =
+              'In Progress';
+
+            currentStep =
+              'Submitted & Queued';
+
+          } else if (
+            rawStatus ===
+            'UNDER_REVIEW'
+          ) {
+
+            statusLabel =
+              'In Progress';
+
+            currentStep =
+              'Department Officer Review';
+
+          }
+
+
+          return {
+
+            id:
+              app.application_id ||
+              `APP-${index + 1}`,
+
+            rawStatus,
+
+            serviceName:
+              app.scheme_name ||
+              'Education Scholarship',
+
+            serviceCategory:
+              'Social Welfare & Education',
+
+            appliedOn:
+              app.submitted_on ||
+              'Today',
+
+            status:
+              statusLabel,
+
+            currentStep,
+
+            department:
+              'Welfare Department',
+
+            applicantName:
+              app.applicant_name ||
+              'Citizen',
+
+            applicantRef:
+              app.applicant_ref ||
+              citizenId,
+
+            birthDate:
+              app.birth_date ||
+              '--',
+
+            updatedAt:
+              'Recently',
+
+            steps: [
+
+              {
+                name:
+                  'Application Submitted',
+
+                status:
+                  'completed',
+
+                date:
+                  app.submitted_on ||
+                  'Day 1',
+              },
+
+              {
+                name:
+                  'Document & Consent Verification',
+
+                status:
+                  rawStatus !==
+                  'SUBMITTED'
+                    ? 'completed'
+                    : 'current',
+
+                date:
+                  rawStatus !==
+                  'SUBMITTED'
+                    ? 'Verified'
+                    : 'In Progress',
+              },
+
+              {
+                name:
+                  'Department Officer Approval',
+
+                status:
+                  rawStatus ===
+                  'APPROVED'
+                    ? 'completed'
+                    : rawStatus ===
+                      'REJECTED'
+                    ? 'rejected'
+                    : rawStatus ===
+                      'UNDER_REVIEW'
+                    ? 'current'
+                    : 'pending',
+
+                date:
+                  rawStatus ===
+                  'APPROVED'
+                    ? 'Approved'
+                    : rawStatus ===
+                      'REJECTED'
+                    ? 'Rejected'
+                    : rawStatus ===
+                      'UNDER_REVIEW'
+                    ? 'Reviewing'
+                    : '--',
+              },
+
+              {
+                name:
+                  'Digital Certificate / Scheme Issuance',
+
+                status:
+                  rawStatus ===
+                  'APPROVED'
+                    ? 'completed'
+                    : 'pending',
+
+                date:
+                  rawStatus ===
+                  'APPROVED'
+                    ? 'Issued'
+                    : '--',
+              },
+
+            ],
+          };
+
+        }
+      );
+
+    },
+    [citizenId]
+  );
+
+
+  // ============================================================
+  // CLEAR CITIZEN DATA
+  // ============================================================
+
+  const clearCitizenData = useCallback(() => {
+
+    setUnifiedData(null);
+
+    setCitizenDashboardData(null);
+
+    setReconciliationData(null);
+
+    setEligibilityData(null);
+
+    setAuditLogs([]);
+
+    setApplications([]);
+
+    setNotifications([]);
+
+    setConsents([]);
+
+    setUser(null);
+
+  }, []);
+
+
+  // ============================================================
+  // REFRESH BACKEND DATA
+  // ============================================================
+
+  const refreshBackendData = useCallback(
+    async (targetCitizenId) => {
+
+      const cleanCitizenId =
+        String(
+          targetCitizenId || ''
+        ).trim();
+
+
+      if (!cleanCitizenId) {
         return;
       }
 
-      setIsBackendConnected(true);
-      setBackendStatus('connected');
 
-      // 1. Fetch Unified Citizen Record
+      setIsLoadingCitizen(true);
+
+
       try {
-        const unifiedRes = await api.getCitizenUnified(targetCitizenId);
-        if (unifiedRes && unifiedRes.unified_citizen_record) {
-          setUnifiedData(unifiedRes.unified_citizen_record);
-          const c = unifiedRes.unified_citizen_record.citizen;
-          if (c) {
-            setUser(prev => ({
-              ...prev,
-              name: c.name || `Citizen (${targetCitizenId})`,
-              citizenId: targetCitizenId,
-              dob: c.dob || prev.dob,
-              gender: c.gender || prev.gender,
-              address: c.address || prev.address,
-              initials: (c.name || 'C').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
-            }));
-          }
-        }
-      } catch (err) {
-        console.warn('Unified record fetch notice:', err.message);
-      }
 
-      // 2. Fetch Dashboard & Applications
-      try {
-        const dashRes = await api.getCitizenDashboard(targetCitizenId);
-        if (dashRes) {
-          setCitizenDashboardData(dashRes);
-          if (Array.isArray(dashRes.applications) && dashRes.applications.length > 0) {
-            setApplications(mapBackendApps(dashRes.applications));
-          } else {
-            // Check direct applications endpoint
-            const appsRes = await api.getCitizenApplications(targetCitizenId);
-            if (appsRes && Array.isArray(appsRes.applications) && appsRes.applications.length > 0) {
-              setApplications(mapBackendApps(appsRes.applications));
-            }
-          }
+        // ======================================================
+        // 1. BACKEND HEALTH
+        // ======================================================
 
-          if (Array.isArray(dashRes.notifications) && dashRes.notifications.length > 0) {
-            const mappedNotifs = dashRes.notifications.map(n => ({
-              id: n.notification_id || `NOT-${Math.random()}`,
-              title: (n.event_type || 'Update').replace(/_/g, ' '),
-              message: n.message,
-              time: n.created_at ? new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent',
-              type: n.event_type?.includes('APPROVED') ? 'success' : n.event_type?.includes('REJECTED') ? 'warning' : 'system',
-              read: n.read_status === 'READ',
-              category: 'update'
-            }));
-            setNotifications(mappedNotifs);
-          }
-        }
-      } catch (err) {
-        console.warn('Dashboard fetch notice:', err.message);
-      }
+        const health =
+          await api.checkBackendHealth();
 
-      // 3. Fetch Reconciliation Data (DOB conflict detection)
-      try {
-        const reconRes = await api.getReconciliation(targetCitizenId);
-        if (reconRes && reconRes.reconciliation_report) {
-          setReconciliationData(reconRes.reconciliation_report);
-        }
-      } catch (err) {
-        console.warn('Reconciliation fetch notice:', err.message);
-      }
 
-      // 4. Check Eligibility for Education Scholarship
-      try {
-        const eligRes = await api.checkEligibility(targetCitizenId, 'Education Scholarship');
-        if (eligRes) {
-          setEligibilityData(eligRes);
-        }
-      } catch (err) {
-        console.warn('Eligibility fetch notice:', err.message);
-      }
+        if (!health?.online) {
 
-      // 5. Fetch Audit Logs
-      try {
-        const auditRes = await api.getAuditLogs(targetCitizenId);
-        if (auditRes && Array.isArray(auditRes.audit_logs)) {
-          setAuditLogs(auditRes.audit_logs);
-          if (auditRes.audit_logs.length > 0) {
-            const mappedHistory = auditRes.audit_logs.map((log, idx) => ({
-              id: log.log_id || `LOG-${idx}`,
-              action: (log.action || 'Data Access').replace(/_/g, ' '),
-              department: log.data_provider || log.target_table || 'GovSync InterOp',
-              date: log.timestamp ? new Date(log.timestamp).toLocaleString() : 'Recent',
-              status: 'Verified'
-            }));
-            setConsentHistory(mappedHistory);
-          }
-        }
-      } catch (err) {
-        console.warn('Audit logs fetch notice:', err.message);
-      }
-
-      // 6. Fetch Admin Dashboard & Health
-      try {
-        const [admDash, hltDept] = await Promise.all([
-          api.getAdminDashboard().catch(() => null),
-          api.getHealthDepartments().catch(() => null)
-        ]);
-        if (admDash) setAdminDashboardData(admDash);
-        if (hltDept) setHealthData(hltDept);
-      } catch (err) {
-        console.warn('Admin stats fetch notice:', err.message);
-      }
-
-    } catch (err) {
-      console.warn('Backend sync failed:', err);
-      setIsBackendConnected(false);
-      setBackendStatus('offline');
-    }
-  }, [citizenId]);
-
-  // Periodic and initial sync
-  useEffect(() => {
-    refreshBackendData(citizenId);
-    const timer = setInterval(() => {
-      refreshBackendData(citizenId);
-    }, 15000);
-    return () => clearInterval(timer);
-  }, [refreshBackendData, citizenId]);
-
-  // Quick switch citizen handler
-  const handleSwitchCitizen = (newCitizenId) => {
-    const cleanId = (newCitizenId || '').trim().toUpperCase();
-    if (!cleanId) return;
-    setCitizenId(cleanId);
-    showToast(`Switched active citizen context to ${cleanId}`, 'info', 'Citizen Switched');
-    refreshBackendData(cleanId);
-  };
-
-  // Grant Consent handler
-  const handleGrantConsent = async (dataProvider, dataType, purpose) => {
-    try {
-      const res = await api.grantConsent(citizenId, dataProvider, dataType, purpose);
-      showToast(`Consent granted for ${dataProvider} (${dataType})`, 'success', 'Consent Granted');
-      refreshBackendData(citizenId);
-      return res;
-    } catch (err) {
-      showToast(`Failed to grant consent: ${err.message}`, 'error', 'Error');
-      throw err;
-    }
-  };
-
-  // Toggle consent switch & propagate to FastAPI
-  const handleToggleConsent = async (id) => {
-    const target = consents.find(item => item.id === id);
-    const nextState = target ? !target.enabled : false;
-
-    if (isBackendConnected && target) {
-      try {
-        if (nextState) {
-          await api.grantConsent(
-            citizenId,
-            target.department || 'Education Department',
-            target.category || 'Education',
-            'Education Scholarship'
+          setIsBackendConnected(
+            false
           );
-        }
-      } catch (err) {
-        console.warn('Consent sync to backend error:', err);
-      }
-    }
 
-    setConsents(prev => prev.map(item => {
-      if (item.id === id) {
-        showToast(
-          `${item.name} is now ${nextState ? 'Active' : 'Paused'}.`,
-          nextState ? 'success' : 'info',
-          'Consent Updated'
+          setBackendStatus(
+            'offline'
+          );
+
+          return;
+        }
+
+
+        setIsBackendConnected(
+          true
         );
-        return { ...item, enabled: nextState };
+
+        setBackendStatus(
+          'connected'
+        );
+
+
+        // ======================================================
+        // 2. UNIFIED CITIZEN RECORD
+        // ======================================================
+
+        try {
+
+          const unifiedRes =
+            await api.getCitizenUnified(
+              cleanCitizenId
+            );
+
+
+          console.log(
+            'LIVE UNIFIED RESPONSE:',
+            unifiedRes
+          );
+
+
+          if (unifiedRes) {
+
+            /*
+             * Support both possible backend formats:
+             *
+             * {
+             *   unified_citizen_record: {...}
+             * }
+             *
+             * OR
+             *
+             * {
+             *   citizen: {...},
+             *   education: [...],
+             *   income: [...],
+             *   welfare: [...]
+             * }
+             */
+
+            const record =
+              unifiedRes.unified_citizen_record ||
+              unifiedRes;
+
+
+            setUnifiedData(
+              record
+            );
+
+
+            const citizen =
+              record.citizen;
+
+
+            if (citizen) {
+
+              setUser(
+                (previous) => ({
+
+                  ...(previous || {}),
+
+                  name:
+                    citizen.name ||
+                    `Citizen (${cleanCitizenId})`,
+
+                  citizenId:
+                    citizen.citizen_id ||
+                    cleanCitizenId,
+
+                  dob:
+                    citizen.dob ||
+                    '',
+
+                  gender:
+                    citizen.gender ||
+                    '',
+
+                  address:
+                    citizen.address ||
+                    '',
+
+                  mobile:
+                    citizen.phone ||
+                    '',
+
+                  phone:
+                    citizen.phone ||
+                    '',
+
+                  initials:
+                    (
+                      citizen.name ||
+                      'C'
+                    )
+                      .split(' ')
+                      .map(
+                        (word) =>
+                          word[0]
+                      )
+                      .join('')
+                      .slice(0, 2)
+                      .toUpperCase(),
+
+                })
+              );
+
+            }
+
+          }
+
+        } catch (error) {
+
+          console.warn(
+            'Unified record fetch notice:',
+            error.message
+          );
+
+        }
+
+
+        // ======================================================
+        // 3. CITIZEN DASHBOARD
+        // ======================================================
+
+        try {
+
+          const dashRes =
+            await api.getCitizenDashboard(
+              cleanCitizenId
+            );
+
+
+          console.log(
+            'LIVE DASHBOARD RESPONSE:',
+            dashRes
+          );
+
+
+          if (dashRes) {
+
+            setCitizenDashboardData(
+              dashRes
+            );
+
+
+            // --------------------------------------------------
+            // Applications
+            // --------------------------------------------------
+
+            if (
+              Array.isArray(
+                dashRes.applications
+              )
+            ) {
+
+              setApplications(
+                mapBackendApps(
+                  dashRes.applications
+                )
+              );
+
+            }
+
+
+            // --------------------------------------------------
+            // Notifications
+            // --------------------------------------------------
+
+            if (
+              Array.isArray(
+                dashRes.notifications
+              )
+            ) {
+
+              const mappedNotifications =
+                dashRes.notifications.map(
+                  (
+                    notification,
+                    index
+                  ) => ({
+
+                    id:
+                      notification.notification_id ||
+                      `NOT-${index}`,
+
+                    title:
+                      String(
+                        notification.event_type ||
+                        'Update'
+                      ).replace(
+                        /_/g,
+                        ' '
+                      ),
+
+                    message:
+                      notification.message ||
+                      'System update',
+
+                    time:
+                      notification.created_at
+                        ? new Date(
+                            notification.created_at
+                          ).toLocaleTimeString(
+                            [],
+                            {
+                              hour:
+                                '2-digit',
+                              minute:
+                                '2-digit',
+                            }
+                          )
+                        : 'Recent',
+
+                    type:
+                      String(
+                        notification.event_type ||
+                        ''
+                      ).includes(
+                        'APPROVED'
+                      )
+                        ? 'success'
+                        : String(
+                            notification.event_type ||
+                            ''
+                          ).includes(
+                            'REJECTED'
+                          )
+                        ? 'warning'
+                        : 'system',
+
+                    read:
+                      String(
+                        notification.read_status ||
+                        ''
+                      ).toUpperCase() ===
+                      'READ',
+
+                    category:
+                      'update',
+
+                  })
+                );
+
+
+              setNotifications(
+                mappedNotifications
+              );
+
+            }
+
+
+            // --------------------------------------------------
+            // Consents
+            // --------------------------------------------------
+
+            if (
+              Array.isArray(
+                dashRes.consents
+              )
+            ) {
+
+              setConsents(
+                dashRes.consents
+              );
+
+            }
+
+          }
+
+        } catch (error) {
+
+          console.warn(
+            'Dashboard fetch notice:',
+            error.message
+          );
+
+        }
+
+
+        // ======================================================
+        // 4. RECONCILIATION
+        // ======================================================
+
+        try {
+
+          const reconRes =
+            await api.getReconciliation(
+              cleanCitizenId
+            );
+
+
+          console.log(
+            'LIVE RECONCILIATION RESPONSE:',
+            reconRes
+          );
+
+
+          if (reconRes) {
+
+            /*
+             * Backend currently returns:
+             *
+             * {
+             *   citizen_id,
+             *   golden_record,
+             *   reconciliation
+             * }
+             *
+             * So store the complete response.
+             */
+
+            setReconciliationData(
+              reconRes
+            );
+
+          }
+
+        } catch (error) {
+
+          console.warn(
+            'Reconciliation fetch notice:',
+            error.message
+          );
+
+        }
+
+
+        // ======================================================
+        // 5. ELIGIBILITY
+        // ======================================================
+
+        try {
+
+          const eligibilityRes =
+            await api.checkEligibility(
+              cleanCitizenId,
+              'Education Scholarship'
+            );
+
+
+          console.log(
+            'LIVE ELIGIBILITY RESPONSE:',
+            eligibilityRes
+          );
+
+
+          if (eligibilityRes) {
+
+            setEligibilityData(
+              eligibilityRes
+            );
+
+          }
+
+        } catch (error) {
+
+          console.warn(
+            'Eligibility fetch notice:',
+            error.message
+          );
+
+        }
+
+
+        // ======================================================
+        // 6. AUDIT LOGS
+        // ======================================================
+
+        try {
+
+          const auditRes =
+            await api.getAuditLogs(
+              cleanCitizenId
+            );
+
+
+          console.log(
+            'LIVE AUDIT RESPONSE:',
+            auditRes
+          );
+
+
+          if (
+            auditRes &&
+            Array.isArray(
+              auditRes.audit_logs
+            )
+          ) {
+
+            setAuditLogs(
+              auditRes.audit_logs
+            );
+
+
+            const history =
+              auditRes.audit_logs.map(
+                (
+                  log,
+                  index
+                ) => ({
+
+                  id:
+                    log.log_id ||
+                    `LOG-${index}`,
+
+                  action:
+                    String(
+                      log.action ||
+                      'Data Access'
+                    ).replace(
+                      /_/g,
+                      ' '
+                    ),
+
+                  department:
+                    log.data_provider ||
+                    log.target_table ||
+                    'GovSync InterOp',
+
+                  date:
+                    log.timestamp
+                      ? new Date(
+                          log.timestamp
+                        ).toLocaleString()
+                      : 'Recent',
+
+                  status:
+                    'Verified',
+
+                })
+              );
+
+
+            if (
+              history.length > 0
+            ) {
+
+              setConsentHistory(
+                history
+              );
+
+            }
+
+          }
+
+        } catch (error) {
+
+          console.warn(
+            'Audit logs fetch notice:',
+            error.message
+          );
+
+        }
+
+
+        // ======================================================
+        // 7. ADMIN + DEPARTMENT HEALTH
+        // ======================================================
+
+        try {
+
+          const [
+            adminResponse,
+            healthResponse,
+          ] = await Promise.all([
+
+            api
+              .getAdminDashboard()
+              .catch(
+                () => null
+              ),
+
+            api
+              .getHealthDepartments()
+              .catch(
+                () => null
+              ),
+
+          ]);
+
+
+          if (adminResponse) {
+
+            setAdminDashboardData(
+              adminResponse
+            );
+
+          }
+
+
+          if (healthResponse) {
+
+            setHealthData(
+              healthResponse
+            );
+
+          }
+
+        } catch (error) {
+
+          console.warn(
+            'Admin/health fetch notice:',
+            error.message
+          );
+
+        }
+
+      } catch (error) {
+
+        console.error(
+          'Backend refresh failed:',
+          error
+        );
+
+        setIsBackendConnected(
+          false
+        );
+
+        setBackendStatus(
+          'offline'
+        );
+
+      } finally {
+
+        setIsLoadingCitizen(
+          false
+        );
+
       }
-      return item;
-    }));
-  };
 
-  // Submit Application with full backend consent + eligibility validation
-  const handleCreateApplication = async (formData) => {
-    const schemeName = formData.serviceName || 'Education Scholarship';
+    },
+    [
+      mapBackendApps,
+    ]
+  );
 
-    if (isBackendConnected) {
+
+  // ============================================================
+  // CITIZEN LOGIN
+  // ============================================================
+
+  const handleCitizenLogin = useCallback(
+    async (mobile) => {
+
+      const cleanMobile =
+        String(
+          mobile || ''
+        ).trim();
+
+
+      if (!cleanMobile) {
+
+        showToast(
+          'Please enter your mobile number.',
+          'warning',
+          'Login'
+        );
+
+        return {
+          success: false,
+        };
+
+      }
+
+
+      setIsLoadingCitizen(
+        true
+      );
+
+
       try {
-        // Attempt submit
-        let res = await api.submitApplication(citizenId, schemeName);
 
-        // If consent is missing, offer auto-granting consent for seamless demo experience!
-        if (res && !res.application_submitted && res.message?.toLowerCase().includes('consent')) {
-          showToast('Granting required Education & Income consents automatically...', 'info', 'Auto-Granting Consent');
-          await api.grantConsent(citizenId, 'Education Department', 'Education', schemeName);
-          await api.grantConsent(citizenId, 'Income Department', 'Income', schemeName);
-          
-          // Re-attempt submit
-          res = await api.submitApplication(citizenId, schemeName);
-        }
+        setBackendStatus(
+          'checking'
+        );
 
-        if (res && res.application_submitted) {
-          showToast(`Application ${res.application?.application_id || 'submitted'} created successfully!`, 'success', 'Application Submitted');
-          triggerConfetti();
-          await refreshBackendData(citizenId);
-          setActiveTab('tracking');
-          return res;
-        } else if (res && !res.application_submitted) {
-          showToast(res.message || 'Eligibility check failed', 'warning', 'Notice');
-          return res;
-        }
-      } catch (err) {
-        console.warn('Backend application submit error:', err);
-        showToast(`Backend submission error: ${err.message}`, 'error', 'Error');
-      }
-    }
 
-    // Local fallback
-    const tempId = 'APP-' + Math.floor(10000 + Math.random() * 90000);
-    const newApp = {
-      id: tempId,
-      rawStatus: 'SUBMITTED',
-      serviceName: schemeName,
-      serviceCategory: 'Social Welfare & Education',
-      appliedOn: 'Today',
-      currentStep: 'Submitted & Queued',
-      status: 'In Progress',
-      department: 'Welfare Department',
-      applicantName: user.name,
-      applicantRef: citizenId,
-      birthDate: user.dob,
-      riskScore: 'Low (0.02)',
-      ocrDetails: { nameMatch: '100%', faceMatch: '98.5%' },
-      updatedAt: 'Just now',
-      steps: [
-        { name: 'Application Submitted', status: 'completed', date: 'Just now' },
-        { name: 'Document Verification', status: 'current', date: 'In Progress' },
-        { name: 'Department Officer Approval', status: 'pending', date: '--' },
-        { name: 'Digital Delivery', status: 'pending', date: '--' }
-      ]
-    };
+        const response =
+          await api.getCitizenByMobile(
+            cleanMobile
+          );
 
-    setApplications(prev => [newApp, ...prev]);
-    showToast(`Application ${tempId} recorded locally!`, 'success', 'Submitted');
-    triggerConfetti();
-    setActiveTab('tracking');
-  };
 
-  // Officer Status Update Workflow
-  const handleOfficerUpdateStatus = async (applicationId, newStatus) => {
-    if (!isBackendConnected) {
-      setApplications(prev => prev.map(a => {
-        if (a.id === applicationId) {
+        console.log(
+          'CITIZEN MOBILE LOOKUP:',
+          response
+        );
+
+
+        if (
+          !response ||
+          !response.found ||
+          !response.citizen
+        ) {
+
+          setIsBackendConnected(
+            true
+          );
+
+          setBackendStatus(
+            'connected'
+          );
+
+
+          showToast(
+            'No citizen record was found for this mobile number.',
+            'error',
+            'Citizen Not Found'
+          );
+
+
           return {
-            ...a,
-            rawStatus: newStatus,
-            status: newStatus === 'APPROVED' ? 'Approved' : newStatus === 'REJECTED' ? 'Rejected' : 'In Progress'
+            success: false,
           };
+
         }
-        return a;
-      }));
-      showToast(`Application ${applicationId} marked as ${newStatus} (Local)`, 'success', 'Status Updated');
+
+
+        const citizen =
+          response.citizen;
+
+
+        const actualCitizenId =
+          citizen.citizen_id;
+
+
+        clearCitizenData();
+
+
+        setUser({
+
+          name:
+            citizen.name ||
+            `Citizen (${actualCitizenId})`,
+
+          citizenId:
+            actualCitizenId,
+
+          email:
+            '',
+
+          mobile:
+            citizen.phone ||
+            cleanMobile,
+
+          phone:
+            citizen.phone ||
+            cleanMobile,
+
+          dob:
+            citizen.dob ||
+            '',
+
+          gender:
+            citizen.gender ||
+            '',
+
+          aadhaarNumber:
+            'XXXX-XXXX-XXXX',
+
+          address:
+            citizen.address ||
+            '',
+
+          initials:
+            (
+              citizen.name ||
+              'C'
+            )
+              .split(' ')
+              .map(
+                (word) =>
+                  word[0]
+              )
+              .join('')
+              .slice(0, 2)
+              .toUpperCase(),
+
+        });
+
+
+        setCitizenId(
+          actualCitizenId
+        );
+
+
+        setCurrentPortal(
+          'citizen'
+        );
+
+
+        setActiveTab(
+          'dashboard'
+        );
+
+
+        await refreshBackendData(
+          actualCitizenId
+        );
+
+
+        showToast(
+          `Welcome, ${citizen.name || 'Citizen'}!`,
+          'success',
+          'Login Successful'
+        );
+
+
+        return {
+
+          success: true,
+
+          citizen,
+
+        };
+
+      } catch (error) {
+
+        console.error(
+          'Citizen login failed:',
+          error
+        );
+
+
+        showToast(
+          error.message ||
+            'Unable to connect to the backend.',
+          'error',
+          'Login Failed'
+        );
+
+
+        return {
+
+          success: false,
+
+          error,
+
+        };
+
+      } finally {
+
+        setIsLoadingCitizen(
+          false
+        );
+
+      }
+
+    },
+    [
+      clearCitizenData,
+      refreshBackendData,
+      showToast,
+    ]
+  );
+
+
+  // ============================================================
+  // LOGOUT
+  // ============================================================
+
+  const handleLogout =
+    useCallback(() => {
+
+      clearCitizenData();
+
+      setCitizenId(
+        null
+      );
+
+      setCurrentPortal(
+        'citizen'
+      );
+
+      setActiveTab(
+        'dashboard'
+      );
+
+      setBackendStatus(
+        'checking'
+      );
+
+    }, [
+      clearCitizenData,
+    ]);
+
+
+  // ============================================================
+  // SWITCH CITIZEN
+  // ============================================================
+
+  const handleSwitchCitizen =
+    useCallback(
+      async (newCitizenId) => {
+
+        const cleanId =
+          String(
+            newCitizenId || ''
+          ).trim();
+
+
+        if (!cleanId) {
+          return;
+        }
+
+
+        clearCitizenData();
+
+
+        setCitizenId(
+          cleanId
+        );
+
+
+        setCurrentPortal(
+          'citizen'
+        );
+
+
+        setActiveTab(
+          'dashboard'
+        );
+
+
+        await refreshBackendData(
+          cleanId
+        );
+
+
+        showToast(
+          `Switched to citizen ${cleanId}`,
+          'success'
+        );
+
+      },
+      [
+        clearCitizenData,
+        refreshBackendData,
+        showToast,
+      ]
+    );
+
+
+  // ============================================================
+  // PERIODIC BACKEND SYNC
+  // ============================================================
+
+  useEffect(() => {
+
+    if (!citizenId) {
       return;
     }
 
-    try {
-      const res = await api.updateApplicationStatus(applicationId, officerId, newStatus);
-      if (res && res.status_updated) {
-        showToast(`Application ${applicationId} status updated to ${newStatus}`, 'success', 'Status Updated');
-        triggerConfetti();
-        await refreshBackendData(citizenId);
-      } else {
-        showToast(res.message || 'Status update transition failed', 'warning', 'Workflow Transition');
-      }
-    } catch (err) {
-      showToast(`Officer update error: ${err.message}`, 'error', 'Error');
-    }
+
+    const interval =
+      setInterval(
+        () => {
+
+          refreshBackendData(
+            citizenId
+          );
+
+        },
+        15000
+      );
+
+
+    return () => {
+
+      clearInterval(
+        interval
+      );
+
+    };
+
+  }, [
+    citizenId,
+    refreshBackendData,
+  ]);
+
+
+  // ============================================================
+  // CREATE / SUBMIT APPLICATION
+  //
+  // IMPORTANT:
+  // This function receives the COMPLETE form object from
+  // ApplicationForm.jsx.
+  //
+  // It DOES NOT automatically grant consent.
+  //
+  // It returns the backend response unchanged so that
+  // ApplicationForm can access:
+  //
+  // result.message
+  // result.reasons
+  // result.criteria
+  // result.missing_consents
+  // result.eligibility
+  // ============================================================
+
+  const createApplication =
+    useCallback(
+      async (formData) => {
+
+        const schemeName =
+          formData?.serviceName ||
+          'Education Scholarship';
+
+
+        if (!citizenId) {
+
+          const result = {
+
+            application_submitted:
+              false,
+
+            message:
+              'Please login first.',
+
+            reasons: [],
+
+          };
+
+
+          showToast(
+            result.message,
+            'warning',
+            'Application'
+          );
+
+
+          return result;
+
+        }
+
+
+        console.log(
+          'APPLICATION SUBMISSION STARTED'
+        );
+
+        console.log(
+          'Citizen ID:',
+          citizenId
+        );
+
+        console.log(
+          'Scheme:',
+          schemeName
+        );
+
+
+        try {
+
+          // ----------------------------------------------------
+          // CALL FASTAPI
+          // ----------------------------------------------------
+
+          const response =
+            await api.submitApplication(
+              citizenId,
+              schemeName
+            );
+
+
+          console.log(
+            'APPLICATION SUBMISSION RESULT:',
+            response
+          );
+
+
+          // ----------------------------------------------------
+          // SUCCESS
+          // ----------------------------------------------------
+
+          if (
+            response?.application_submitted ===
+            true
+          ) {
+
+            showToast(
+              `Application ${
+                response.application?.application_id ||
+                'submitted'
+              } created successfully!`,
+              'success',
+              'Application Submitted'
+            );
+
+
+            triggerConfetti();
+
+
+            await refreshBackendData(
+              citizenId
+            );
+
+
+            setActiveTab(
+              'tracking'
+            );
+
+
+            // VERY IMPORTANT:
+            // Return the COMPLETE backend response.
+            return response;
+
+          }
+
+
+          // ----------------------------------------------------
+          // CONSENT MISSING
+          // ----------------------------------------------------
+
+          if (
+            response?.application_submitted ===
+              false &&
+            (
+              (
+                Array.isArray(
+                  response?.missing_consents
+                ) &&
+                response.missing_consents.length >
+                  0
+              ) ||
+              String(
+                response?.message || ''
+              )
+                .toLowerCase()
+                .includes(
+                  'consent'
+                )
+            )
+          ) {
+
+            console.log(
+              'APPLICATION BLOCKED: CONSENT REQUIRED'
+            );
+
+
+            showToast(
+              response.message ||
+                'Required consent has not been granted.',
+              'warning',
+              'Consent Required'
+            );
+
+
+            /*
+             * IMPORTANT:
+             * DO NOT automatically grant consent here.
+             *
+             * The citizen must grant it through
+             * Consent Management.
+             */
+
+
+            return response;
+
+          }
+
+
+          // ----------------------------------------------------
+          // ELIGIBILITY FAILURE
+          // ----------------------------------------------------
+
+          if (
+            response?.application_submitted ===
+              false
+          ) {
+
+            const reasons =
+              Array.isArray(
+                response?.reasons
+              )
+                ? response.reasons
+                : Array.isArray(
+                    response?.eligibility?.reasons
+                  )
+                ? response.eligibility.reasons
+                : [];
+
+
+            console.log(
+              'ELIGIBILITY FAILURE REASONS:',
+              reasons
+            );
+
+
+            showToast(
+              response?.message ||
+                response?.eligibility?.message ||
+                'Citizen is not eligible for this scheme.',
+              'warning',
+              'Eligibility Check'
+            );
+
+
+            /*
+             * VERY IMPORTANT:
+             * Return complete response so ApplicationForm
+             * can display the detailed reasons.
+             */
+
+            return response;
+
+          }
+
+
+          // ----------------------------------------------------
+          // UNKNOWN RESPONSE
+          // ----------------------------------------------------
+
+          return response;
+
+        } catch (error) {
+
+          console.error(
+            'Backend application submit error:',
+            error
+          );
+
+
+          const errorResponse = {
+
+            application_submitted:
+              false,
+
+            message:
+              error?.message ||
+              'Application submission failed.',
+
+            reasons: [],
+
+          };
+
+
+          showToast(
+            errorResponse.message,
+            'error',
+            'Submission Error'
+          );
+
+
+          /*
+           * Return error response instead of hiding it.
+           */
+
+          return errorResponse;
+
+        }
+
+      },
+      [
+        citizenId,
+        refreshBackendData,
+        showToast,
+        triggerConfetti,
+      ]
+    );
+
+
+  // ============================================================
+  // UPDATE APPLICATION STATUS
+  // ============================================================
+
+  const updateApplicationStatus =
+    useCallback(
+      async (
+        applicationId,
+        newStatus
+      ) => {
+
+        if (!applicationId) {
+          return null;
+        }
+
+
+        try {
+
+          const response =
+            await api.updateApplicationStatus(
+              applicationId,
+              officerId,
+              newStatus
+            );
+
+
+          if (citizenId) {
+
+            await refreshBackendData(
+              citizenId
+            );
+
+          }
+
+
+          return response;
+
+        } catch (error) {
+
+          showToast(
+            error.message ||
+              'Unable to update application.',
+            'error',
+            'Update Failed'
+          );
+
+
+          throw error;
+
+        }
+
+      },
+      [
+        citizenId,
+        officerId,
+        refreshBackendData,
+        showToast,
+      ]
+    );
+
+
+  // ============================================================
+  // GRANT CONSENT
+  // ============================================================
+
+  const grantConsent =
+    useCallback(
+      async (
+        dataProvider,
+        dataType,
+        purpose
+      ) => {
+
+        if (!citizenId) {
+
+          showToast(
+            'Please login first.',
+            'warning',
+            'Consent'
+          );
+
+          return null;
+
+        }
+
+
+        try {
+
+          console.log(
+            'GRANTING CONSENT:',
+            {
+              citizenId,
+              dataProvider,
+              dataType,
+              purpose,
+            }
+          );
+
+
+          const response =
+            await api.grantConsent(
+              citizenId,
+              dataProvider,
+              dataType,
+              purpose
+            );
+
+
+          console.log(
+            'CONSENT GRANT RESPONSE:',
+            response
+          );
+
+
+          await refreshBackendData(
+            citizenId
+          );
+
+
+          showToast(
+            'Consent granted successfully.',
+            'success',
+            'Consent Updated'
+          );
+
+
+          return response;
+
+        } catch (error) {
+
+          console.error(
+            'Consent grant error:',
+            error
+          );
+
+
+          showToast(
+            error.message ||
+              'Unable to grant consent.',
+            'error',
+            'Consent Failed'
+          );
+
+
+          throw error;
+
+        }
+
+      },
+      [
+        citizenId,
+        refreshBackendData,
+        showToast,
+      ]
+    );
+
+
+  // ============================================================
+  // TOGGLE CONSENT
+  //
+  // Used by ConsentManagement.jsx.
+  //
+  // IMPORTANT:
+  // Backend currently supports granting consent.
+  // We do not pretend that a revoke operation exists.
+  // ============================================================
+
+  const handleToggleConsent =
+    useCallback(
+      async (
+        id,
+        nextState,
+        target = null
+      ) => {
+
+        // ------------------------------------------------------
+        // TURNING ON / GRANTING
+        // ------------------------------------------------------
+
+        if (nextState) {
+
+          if (!citizenId) {
+
+            showToast(
+              'Please login first.',
+              'warning',
+              'Consent'
+            );
+
+            return;
+
+          }
+
+
+          try {
+
+            const dataProvider =
+              target?.department ||
+              target?.dataProvider ||
+              target?.data_provider ||
+              'Education Department';
+
+
+            const dataType =
+              target?.category ||
+              target?.dataType ||
+              target?.data_type ||
+              'Education';
+
+
+            const purpose =
+              target?.purpose ||
+              'Education Scholarship';
+
+
+            await api.grantConsent(
+              citizenId,
+              dataProvider,
+              dataType,
+              purpose
+            );
+
+
+            // Refresh real backend data
+            await refreshBackendData(
+              citizenId
+            );
+
+
+            // Update local representation
+            setConsents(
+              (previous) => {
+
+                const exists =
+                  previous.some(
+                    (item) =>
+                      item.id === id
+                  );
+
+
+                if (!exists) {
+
+                  return [
+                    ...previous,
+
+                    {
+                      id,
+
+                      name:
+                        target?.name ||
+                        dataProvider,
+
+                      department:
+                        dataProvider,
+
+                      category:
+                        dataType,
+
+                      dataProvider,
+
+                      dataType,
+
+                      purpose,
+
+                      enabled:
+                        true,
+
+                      status:
+                        'GRANTED',
+                    },
+                  ];
+
+                }
+
+
+                return previous.map(
+                  (item) => {
+
+                    if (
+                      item.id === id
+                    ) {
+
+                      return {
+                        ...item,
+
+                        enabled:
+                          true,
+
+                        status:
+                          'GRANTED',
+                      };
+
+                    }
+
+                    return item;
+
+                  }
+                );
+
+              }
+            );
+
+
+            showToast(
+              `${target?.name || dataProvider} consent granted.`,
+              'success',
+              'Consent Updated'
+            );
+
+
+          } catch (error) {
+
+            console.warn(
+              'Consent sync to backend error:',
+              error
+            );
+
+
+            showToast(
+              error.message ||
+                'Unable to grant consent.',
+              'error',
+              'Consent Failed'
+            );
+
+          }
+
+
+          return;
+
+        }
+
+
+        // ------------------------------------------------------
+        // TURNING OFF
+        // ------------------------------------------------------
+
+        /*
+         * There is no backend revoke endpoint in the current
+         * prototype.
+         *
+         * Therefore do NOT pretend that the backend consent
+         * was revoked.
+         *
+         * We only update the local UI state.
+         */
+
+        setConsents(
+          (previous) =>
+            previous.map(
+              (item) => {
+
+                if (
+                  item.id === id
+                ) {
+
+                  showToast(
+                    `${item.name || 'Consent'} is now paused locally.`,
+                    'info',
+                    'Consent Updated'
+                  );
+
+
+                  return {
+                    ...item,
+
+                    enabled:
+                      false,
+                  };
+
+                }
+
+                return item;
+
+              }
+            )
+        );
+
+      },
+      [
+        citizenId,
+        refreshBackendData,
+        showToast,
+      ]
+    );
+
+
+  // ============================================================
+  // PROVIDER VALUE
+  // ============================================================
+
+  const value = {
+
+    // ----------------------------------------------------------
+    // Portal
+    // ----------------------------------------------------------
+
+    currentPortal,
+
+    setCurrentPortal,
+
+
+    // ----------------------------------------------------------
+    // Citizen
+    // ----------------------------------------------------------
+
+    citizenId,
+
+    setCitizenId,
+
+    handleCitizenLogin,
+
+    handleSwitchCitizen,
+
+    handleLogout,
+
+
+    // ----------------------------------------------------------
+    // Officer
+    // ----------------------------------------------------------
+
+    officerId,
+
+    setOfficerId,
+
+
+    // ----------------------------------------------------------
+    // Navigation
+    // ----------------------------------------------------------
+
+    activeTab,
+
+    setActiveTab,
+
+    searchQuery,
+
+    setSearchQuery,
+
+    selectedCategory,
+
+    setSelectedCategory,
+
+
+    // ----------------------------------------------------------
+    // Sidebar
+    // ----------------------------------------------------------
+
+    isSidebarOpen,
+
+    setIsSidebarOpen,
+
+    isSidebarPinned,
+
+    setIsSidebarPinned,
+
+
+    // ----------------------------------------------------------
+    // Backend
+    // ----------------------------------------------------------
+
+    isBackendConnected,
+
+    backendStatus,
+
+    isLoadingCitizen,
+
+    refreshBackendData,
+
+
+    // ----------------------------------------------------------
+    // Live Data
+    // ----------------------------------------------------------
+
+    unifiedData,
+
+    citizenDashboardData,
+
+    reconciliationData,
+
+    eligibilityData,
+
+    auditLogs,
+
+    adminDashboardData,
+
+    healthData,
+
+
+    // ----------------------------------------------------------
+    // User
+    // ----------------------------------------------------------
+
+    user,
+
+    setUser,
+
+
+    // ----------------------------------------------------------
+    // Static Data
+    // ----------------------------------------------------------
+
+    services,
+
+    categories,
+
+
+    // ----------------------------------------------------------
+    // Applications
+    // ----------------------------------------------------------
+
+    applications,
+
+    setApplications,
+
+    createApplication,
+
+    updateApplicationStatus,
+
+    selectedApplicationDetails,
+
+    setSelectedApplicationDetails,
+
+
+    // ----------------------------------------------------------
+    // Notifications
+    // ----------------------------------------------------------
+
+    notifications,
+
+    setNotifications,
+
+
+    // ----------------------------------------------------------
+    // Consents
+    // ----------------------------------------------------------
+
+    consents,
+
+    setConsents,
+
+    consentHistory,
+
+    setConsentHistory,
+
+    grantConsent,
+
+    handleToggleConsent,
+
+
+    // ----------------------------------------------------------
+    // Modals
+    // ----------------------------------------------------------
+
+    selectedServiceModal,
+
+    setSelectedServiceModal,
+
+    isAadhaarModalOpen,
+
+    setIsAadhaarModalOpen,
+
+
+    // ----------------------------------------------------------
+    // UI
+    // ----------------------------------------------------------
+
+    toast,
+
+    showToast,
+
+
+    // ----------------------------------------------------------
+    // Effects
+    // ----------------------------------------------------------
+
+    triggerConfetti,
+
   };
 
-  const handleOfficerApproveApp = async (applicationId) => {
-    // If current status is SUBMITTED, backend requires transition to UNDER_REVIEW first, then APPROVED
-    const targetApp = applications.find(a => a.id === applicationId);
-    if (targetApp && targetApp.rawStatus === 'SUBMITTED') {
-      try {
-        await api.updateApplicationStatus(applicationId, officerId, 'UNDER_REVIEW');
-      } catch (e) {
-        console.warn('Intermediate transition notice:', e);
-      }
-    }
-    await handleOfficerUpdateStatus(applicationId, 'APPROVED');
-  };
-
-  const handleOfficerRejectApp = async (applicationId) => {
-    const targetApp = applications.find(a => a.id === applicationId);
-    if (targetApp && targetApp.rawStatus === 'SUBMITTED') {
-      try {
-        await api.updateApplicationStatus(applicationId, officerId, 'UNDER_REVIEW');
-      } catch (e) {
-        console.warn('Intermediate transition notice:', e);
-      }
-    }
-    await handleOfficerUpdateStatus(applicationId, 'REJECTED');
-  };
-
-  const handleMarkNotificationRead = (id) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  };
-
-  const handleMarkAllNotificationsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    showToast('All notifications marked as read', 'info');
-  };
 
   return (
-    <AppContext.Provider value={{
-      // Prototype Portal & Role Switching
-      currentPortal,
-      setCurrentPortal,
-      citizenId,
-      setCitizenId,
-      handleSwitchCitizen,
-      officerId,
-      setOfficerId,
 
-      // Navigation & Layout
-      activeTab,
-      setActiveTab,
-      searchQuery,
-      setSearchQuery,
-      selectedCategory,
-      setSelectedCategory,
-      isSidebarOpen,
-      setIsSidebarOpen,
-      isSidebarPinned,
-      setIsSidebarPinned,
+    <AppContext.Provider
+      value={value}
+    >
 
-      // Live Backend State
-      isBackendConnected,
-      backendStatus,
-      refreshBackendData,
-      unifiedData,
-      citizenDashboardData,
-      reconciliationData,
-      eligibilityData,
-      auditLogs,
-      adminDashboardData,
-      healthData,
-
-      // User & Entity State
-      user,
-      setUser,
-      services,
-      categories,
-      applications,
-      notifications,
-      consents,
-      consentHistory,
-
-      // Modal & Notification State
-      selectedServiceModal,
-      setSelectedServiceModal,
-      selectedApplicationDetails,
-      setSelectedApplicationDetails,
-      isAadhaarModalOpen,
-      setIsAadhaarModalOpen,
-      toast,
-      showToast,
-      triggerConfetti,
-
-      // Business Logic Actions
-      handleToggleConsent,
-      handleGrantConsent,
-      handleCreateApplication,
-      handleOfficerUpdateStatus,
-      handleOfficerApproveApp,
-      handleOfficerRejectApp,
-      handleMarkNotificationRead,
-      handleMarkAllNotificationsRead
-    }}>
       {children}
+
     </AppContext.Provider>
+
   );
+
 };
 
-export const useApp = () => useContext(AppContext);
+
+// ============================================================
+// USE APP
+// ============================================================
+
+export const useApp = () => {
+
+  const context =
+    useContext(
+      AppContext
+    );
+
+
+  if (!context) {
+
+    throw new Error(
+      'useApp must be used inside AppProvider'
+    );
+
+  }
+
+
+  return context;
+
+};
+
+
+export default AppContext;
