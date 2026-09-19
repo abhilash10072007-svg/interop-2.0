@@ -413,26 +413,27 @@ const api = {
   // UPDATE APPLICATION STATUS
   // ==========================================================
 
-  async updateApplicationStatus(
-    applicationId,
-    userId,
-    newStatus
-  ) {
-    const params = new URLSearchParams({
-      user_id: userId,
-      new_status: newStatus,
-    });
+  async updateApplicationStatus(applicationId, userId, newStatus) {
+  const payload = {
+    user_id: userId,
+    new_status: newStatus,
+  };
 
-    return await request(
-      '/applications/' +
-        encodeURIComponent(applicationId) +
-        '/status?' +
-        params.toString(),
-      {
-        method: 'PUT',
-      }
-    );
-  },
+  console.log('UPDATE APPLICATION STATUS PAYLOAD:', {
+    applicationId,
+    ...payload,
+  });
+
+  return await request(
+    '/applications/' +
+      encodeURIComponent(applicationId) +
+      '/status',
+    {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }
+  );
+},
 
 
   // ==========================================================

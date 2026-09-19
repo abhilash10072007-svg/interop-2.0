@@ -68,6 +68,7 @@ def parse_date_value(value):
         "%Y-%m-%dT%H:%M:%S.%f",
         "%d-%m-%Y",
         "%d/%m/%Y",
+        "%m/%d/%Y",
     ]
 
     for fmt in formats:
@@ -232,18 +233,28 @@ def normalize_income(record):
     if dob and not normalized_dob:
         errors.append("Invalid date of birth")
 
+    try:
+        normalized_income = (
+            float(annual_income)
+            if annual_income is not None
+            else None
+        )
+    except (TypeError, ValueError):
+        normalized_income = None
+        errors.append("Invalid annual_income_inr")
+
     normalized = {
         "beneficiary_id": beneficiary_id,
         "citizen_id": citizen_ref,
         "name": name,
         "dob": normalized_dob,
-        "annual_income_inr": (
-            float(annual_income)
-            if annual_income is not None
+        "annual_income_inr": normalized_income,
+        "income_source": income_source,
+        "verification_flag": (
+            str(verification_flag).upper()
+            if verification_flag
             else None
         ),
-        "income_source": income_source,
-        "verification_flag": verification_flag,
     }
 
     return {
@@ -354,6 +365,7 @@ def check_consent(
     data_type,
     purpose
 ):
+
     response = (
         supabase
         .table("consents")
@@ -577,17 +589,23 @@ def get_scholarship_data(citizen_id):
         .execute()
     )
 
-    education = [
-        normalize_education(record)["data"]
-        for record in (education_response.data or [])
-        if normalize_education(record)["valid"]
-    ]
+    education = []
 
-    income = [
-        normalize_income(record)["data"]
-        for record in (income_response.data or [])
-        if normalize_income(record)["valid"]
-    ]
+    for record in education_response.data or []:
+
+        result = normalize_education(record)
+
+        if result["valid"]:
+            education.append(result["data"])
+
+    income = []
+
+    for record in income_response.data or []:
+
+        result = normalize_income(record)
+
+        if result["valid"]:
+            income.append(result["data"])
 
     return {
         "data_available": True,
@@ -635,7 +653,6 @@ SCHEME_RULES = {
     },
 
     "Personal Loan": {
-        # Prototype-configurable assumption.
         "minimum_age": 21,
         "maximum_age": 58,
         "minimum_annual_income": 180000,
@@ -704,8 +721,6 @@ def check_scholarship_eligibility(
         .execute()
     )
 
-    reasons = []
-
     education = None
     income = None
 
@@ -726,6 +741,8 @@ def check_scholarship_eligibility(
 
         if result["valid"]:
             income = result["data"]
+
+    reasons = []
 
     if not education:
         reasons.append(
@@ -759,6 +776,7 @@ def check_scholarship_eligibility(
         )
 
         if not income_eligible:
+
             reasons.append(
                 f"Annual income exceeds "
                 f"₹{rules['income_limit']:,.0f}"
@@ -772,6 +790,7 @@ def check_scholarship_eligibility(
         )
 
         if not student_eligible:
+
             reasons.append(
                 f"Student status must be "
                 f"{rules['student_status']}"
@@ -786,7 +805,8 @@ def check_scholarship_eligibility(
         "message": (
             "Citizen is eligible for this scheme"
             if eligible
-            else "Citizen is not eligible for this scheme"
+            else
+            "Citizen is not eligible for this scheme"
         ),
         "reasons": reasons,
         "citizen": citizen,
@@ -893,7 +913,6 @@ def check_driving_license_eligibility(
             )
         )
 
-        # More than 5 years expired.
         if (
             days_expired is not None
             and days_expired > 1825
@@ -947,9 +966,7 @@ def check_driving_license_eligibility(
             "criteria": {
                 "age": age,
                 "license_expiry_date": (
-                    license_record.get(
-                        "expiry_date"
-                    )
+                    license_record.get("expiry_date")
                 ),
                 "days_expired": days_expired,
                 "suspension_flag": suspension_flag,
@@ -976,7 +993,6 @@ def check_driving_license_eligibility(
         else None
     )
 
-    # Age
     if license_type == "GEARLESS_TWO_WHEELER":
 
         if age is None or age < 16:
@@ -1006,7 +1022,6 @@ def check_driving_license_eligibility(
                 "Applicant must be at least 18 years old"
             )
 
-    # Learner license
     if not learner:
 
         reasons.append(
@@ -1029,7 +1044,6 @@ def check_driving_license_eligibility(
                 "issued at least 30 days ago"
             )
 
-    # Medical fitness
     medical_response = (
         supabase
         .table("medical_fitness_records")
@@ -1051,7 +1065,6 @@ def check_driving_license_eligibility(
             "Medical fitness declaration is required"
         )
 
-    # Aadhaar address
     aadhaar_response = (
         supabase
         .table("aadhaar_records")
@@ -1141,10 +1154,6 @@ def check_income_certificate_eligibility(
 
     reasons = []
 
-    # --------------------------------------------------------
-    # RESIDENCY
-    # --------------------------------------------------------
-
     residency_response = (
         supabase
         .table("residency_records")
@@ -1167,29 +1176,20 @@ def check_income_certificate_eligibility(
 
     else:
 
-        if not residency.get(
-            "verified",
-            False
-        ):
+        if not residency.get("verified", False):
 
             reasons.append(
                 "Residency record has not been verified"
             )
 
-        if not residency.get(
-            "state_resident",
-            False
-        ):
+        if not residency.get("state_resident", False):
 
             reasons.append(
                 "Applicant must be a resident of the state"
             )
 
         residency_years = (
-            residency.get(
-                "residency_years",
-                0
-            )
+            residency.get("residency_years", 0)
             or 0
         )
 
@@ -1201,10 +1201,7 @@ def check_income_certificate_eligibility(
 
         if issuing_district:
 
-            if (
-                residency.get("district")
-                != issuing_district
-            ):
+            if residency.get("district") != issuing_district:
 
                 reasons.append(
                     "Residency district does not match "
@@ -1213,19 +1210,12 @@ def check_income_certificate_eligibility(
 
         if issuing_taluk:
 
-            if (
-                residency.get("taluk")
-                != issuing_taluk
-            ):
+            if residency.get("taluk") != issuing_taluk:
 
                 reasons.append(
                     "Residency taluk does not match "
                     "the issuing taluk"
                 )
-
-    # --------------------------------------------------------
-    # OPTIONAL INCOME CROSS-CHECK
-    # --------------------------------------------------------
 
     income_response = (
         supabase
@@ -1248,19 +1238,15 @@ def check_income_certificate_eligibility(
 
     if income_record:
 
-        income_cross_check["verified"] = bool(
-            income_record.get(
-                "verification_flag"
-            )
+        income_cross_check["verified"] = (
+            str(
+                income_record.get(
+                    "verification_flag",
+                    ""
+                )
+            ).upper()
+            == "VERIFIED"
         )
-
-    # If income/PAN/bank data is unavailable,
-    # it does NOT cause failure because the requirement
-    # says "if available".
-
-    # --------------------------------------------------------
-    # EXISTING VALID CERTIFICATE
-    # --------------------------------------------------------
 
     certificate_response = (
         supabase
@@ -1354,10 +1340,6 @@ def check_caste_certificate_eligibility(
 
     reasons = []
 
-    # --------------------------------------------------------
-    # COMMUNITY
-    # --------------------------------------------------------
-
     community_response = (
         supabase
         .table("community_records")
@@ -1381,10 +1363,6 @@ def check_caste_certificate_eligibility(
             "the official state schedule"
         )
 
-    # --------------------------------------------------------
-    # RESIDENCY
-    # --------------------------------------------------------
-
     residency_response = (
         supabase
         .table("residency_records")
@@ -1406,10 +1384,6 @@ def check_caste_certificate_eligibility(
         reasons.append(
             "Verified state residency is required"
         )
-
-    # --------------------------------------------------------
-    # LINEAGE OR REVENUE VERIFICATION
-    # --------------------------------------------------------
 
     lineage_response = (
         supabase
@@ -1887,9 +1861,10 @@ def check_personal_loan_eligibility(
 
             if raw_income is not None:
 
-                income_value = float(
-                    raw_income
-                )
+                try:
+                    income_value = float(raw_income)
+                except (ValueError, TypeError):
+                    income_value = None
 
     minimum_income = rules[
         "minimum_annual_income"
@@ -1975,7 +1950,7 @@ def check_personal_loan_eligibility(
         )
 
     # --------------------------------------------------------
-    # INCOME CERTIFICATE INTEROPERABILITY
+    # INCOME CERTIFICATE
     # --------------------------------------------------------
 
     certificate_response = (
@@ -1997,10 +1972,10 @@ def check_personal_loan_eligibility(
             certificate.get("expiry_date")
         )
 
-        if (
-            expiry
-            and expiry >= date.today()
-        ):
+        if expiry is None:
+            continue
+
+        if expiry >= date.today():
 
             valid_certificate = certificate
             break
@@ -2019,8 +1994,7 @@ def check_personal_loan_eligibility(
         if income_value is not None:
 
             income_certificate_match = (
-                certificate_income
-                == income_value
+                certificate_income == income_value
             )
 
             if not income_certificate_match:
@@ -2067,21 +2041,28 @@ def check_personal_loan_eligibility(
             ),
         },
     }
+
+
+# ============================================================
+# PERSONAL LOAN INCOME VERIFICATION
+# ============================================================
+
 def verify_personal_loan_income(
     citizen_id: str,
-    declared_income: float | None = None,
+    declared_income=None,
 ):
     """
-    Verify declared income against the citizen's
-    Income Certificate, if one exists.
+    Verify declared income against the latest
+    Income Certificate.
 
-    This is an interoperability verification operation,
-    not a loan approval decision.
+    This operation only verifies the income value.
+    It does not approve or reject a loan.
     """
 
     citizen = get_citizen_record(citizen_id)
 
     if not citizen:
+
         return {
             "eligibility_checked": True,
             "verification": False,
@@ -2091,7 +2072,7 @@ def verify_personal_loan_income(
         }
 
     # --------------------------------------------------------
-    # Get Income Certificate
+    # GET INCOME CERTIFICATES
     # --------------------------------------------------------
 
     certificate_response = (
@@ -2106,7 +2087,7 @@ def verify_personal_loan_income(
     certificates = certificate_response.data or []
 
     # --------------------------------------------------------
-    # No certificate
+    # NO CERTIFICATE
     # --------------------------------------------------------
 
     if not certificates:
@@ -2135,7 +2116,7 @@ def verify_personal_loan_income(
     ).upper()
 
     # --------------------------------------------------------
-    # Certificate exists but income is unavailable
+    # CERTIFICATE INCOME MISSING
     # --------------------------------------------------------
 
     if certificate_income is None:
@@ -2155,7 +2136,7 @@ def verify_personal_loan_income(
         }
 
     # --------------------------------------------------------
-    # Declared income was not supplied
+    # DECLARED INCOME MISSING
     # --------------------------------------------------------
 
     if declared_income is None:
@@ -2177,12 +2158,19 @@ def verify_personal_loan_income(
         }
 
     # --------------------------------------------------------
-    # Compare income
+    # COMPARE
     # --------------------------------------------------------
 
     try:
-        declared = float(declared_income)
-        certified = float(certificate_income)
+
+        declared = float(
+            declared_income
+        )
+
+        certified = float(
+            certificate_income
+        )
+
     except (TypeError, ValueError):
 
         return {
@@ -2192,6 +2180,7 @@ def verify_personal_loan_income(
             "income_match": False,
             "declared_income": declared_income,
             "certificate_income": certificate_income,
+            "certificate_status": certificate_status,
             "message": (
                 "Income values could not be compared"
             ),
@@ -2199,9 +2188,9 @@ def verify_personal_loan_income(
 
     income_match = declared == certified
 
-    # --------------------------------------------------------
-    # Final result
-    # --------------------------------------------------------
+    # Verification means the check was successfully
+    # performed. income_match contains the result.
+    verification = True
 
     if income_match:
 
@@ -2218,7 +2207,7 @@ def verify_personal_loan_income(
 
     return {
         "eligibility_checked": True,
-        "verification": True,
+        "verification": verification,
         "income_certificate_found": True,
         "income_match": income_match,
         "declared_income": declared,
@@ -2232,6 +2221,7 @@ def verify_personal_loan_income(
         ),
         "message": message,
     }
+
 
 # ============================================================
 # MAIN ELIGIBILITY DISPATCHER
@@ -2256,10 +2246,13 @@ def check_eligibility(
         operation or "apply"
     ).upper()
 
+    scheme_name = str(
+        scheme_name or ""
+    ).strip()
+
     # --------------------------------------------------------
     # TRACK
     # --------------------------------------------------------
-    # Tracking must NEVER run eligibility logic.
 
     if operation == "TRACK":
 
@@ -2272,6 +2265,26 @@ def check_eligibility(
                 "eligibility verification"
             ),
         }
+
+    # --------------------------------------------------------
+    # PERSONAL LOAN VERIFY
+    # IMPORTANT:
+    # This MUST come before normal Personal Loan APPLY.
+    # --------------------------------------------------------
+
+    if scheme_name == "Personal Loan":
+
+        if operation == "VERIFY":
+
+            return verify_personal_loan_income(
+                citizen_id=citizen_id,
+                declared_income=declared_income,
+            )
+
+        return check_personal_loan_eligibility(
+            citizen_id=citizen_id,
+            declared_income=declared_income,
+        )
 
     # --------------------------------------------------------
     # DRIVING LICENSE
@@ -2324,18 +2337,7 @@ def check_eligibility(
         )
 
     # --------------------------------------------------------
-    # PERSONAL LOAN
-    # --------------------------------------------------------
-
-    if scheme_name == "Personal Loan":
-
-        return check_personal_loan_eligibility(
-            citizen_id=citizen_id,
-            declared_income=declared_income,
-        )
-
-    # --------------------------------------------------------
-    # EXISTING SCHOLARSHIP SERVICES
+    # EDUCATION SCHOLARSHIP / STUDENT ASSISTANCE
     # --------------------------------------------------------
 
     if scheme_name in [
@@ -2372,11 +2374,11 @@ def check_eligibility(
 
 def get_citizen_dashboard(citizen_id: str):
 
-    # ==================================================
+    # ========================================================
     # CITIZEN
-    # ==================================================
+    # ========================================================
 
-    citizen = (
+    citizen_response = (
         supabase
         .table("citizens")
         .select("*")
@@ -2385,9 +2387,11 @@ def get_citizen_dashboard(citizen_id: str):
         .execute()
     )
 
-    # ==================================================
+    citizen_data = citizen_response.data
+
+    # ========================================================
     # APPLICATIONS
-    # ==================================================
+    # ========================================================
 
     applications = (
         supabase
@@ -2401,13 +2405,17 @@ def get_citizen_dashboard(citizen_id: str):
     application_data = applications.data or []
 
     for application in application_data:
+
         application["application_status"] = normalize_status(
-            application.get("application_status", "SUBMITTED")
+            application.get(
+                "application_status",
+                "SUBMITTED"
+            )
         )
 
-    # ==================================================
+    # ========================================================
     # NOTIFICATIONS
-    # ==================================================
+    # ========================================================
 
     notifications = (
         supabase
@@ -2418,13 +2426,16 @@ def get_citizen_dashboard(citizen_id: str):
         .execute()
     )
 
-    notification_data = notifications.data or []
+    notification_data = (
+        notifications.data or []
+    )
 
-    # ==================================================
+    # ========================================================
     # CONSENTS
-    # ==================================================
+    # ========================================================
 
     try:
+
         consents = (
             supabase
             .table("consents")
@@ -2433,24 +2444,34 @@ def get_citizen_dashboard(citizen_id: str):
             .execute()
         )
 
-        consent_data = consents.data or []
+        consent_data = (
+            consents.data or []
+        )
 
-        # Sort only if granted_at actually exists
         if consent_data and "granted_at" in consent_data[0]:
+
             consent_data.sort(
-                key=lambda x: x.get("granted_at") or "",
+                key=lambda x: x.get(
+                    "granted_at"
+                ) or "",
                 reverse=True
             )
 
     except Exception as error:
-        print("Dashboard consent fetch error:", error)
+
+        print(
+            "Dashboard consent fetch error:",
+            error
+        )
+
         consent_data = []
 
-    # ==================================================
+    # ========================================================
     # AUDIT LOGS
-    # ==================================================
+    # ========================================================
 
     try:
+
         audit_logs = (
             supabase
             .table("audit_logs")
@@ -2460,20 +2481,27 @@ def get_citizen_dashboard(citizen_id: str):
             .execute()
         )
 
-        audit_data = audit_logs.data or []
+        audit_data = (
+            audit_logs.data or []
+        )
 
     except Exception as error:
-        print("Dashboard audit fetch error:", error)
+
+        print(
+            "Dashboard audit fetch error:",
+            error
+        )
+
         audit_data = []
 
-    # ==================================================
+    # ========================================================
     # DASHBOARD RESPONSE
-    # ==================================================
+    # ========================================================
 
     return {
-        "citizen": citizen.data,
+        "citizen": citizen_data,
         "applications": application_data,
         "notifications": notification_data,
         "consents": consent_data,
-        "audit_logs": audit_data
+        "audit_logs": audit_data,
     }

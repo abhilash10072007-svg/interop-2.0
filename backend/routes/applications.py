@@ -20,10 +20,9 @@ router = APIRouter()
 class ApplicationSubmitRequest(BaseModel):
     citizen_id: str
     scheme_name: str
-
     operation: Optional[str] = "APPLY"
 
-    # General application data
+    # General
     license_type: Optional[str] = None
 
     # Driving License
@@ -67,14 +66,9 @@ class ApplicationStatusUpdateRequest(BaseModel):
 
 
 # ============================================================
-# DUPLICATE APPLICATION CONFIGURATION
+# CONFIGURATION
 # ============================================================
 
-# These statuses mean that an application is still active
-# or has already been successfully processed.
-#
-# A citizen cannot submit another application for the same
-# scheme while an application is in any of these states.
 DUPLICATE_BLOCKING_STATUSES = {
     "SUBMITTED",
     "UNDER_REVIEW",
@@ -83,28 +77,23 @@ DUPLICATE_BLOCKING_STATUSES = {
 }
 
 
+CONSENT_REQUIRED_SERVICES = {
+    "Education Scholarship",
+    "Student Assistance",
+}
+
+
 # ============================================================
 # HELPER FUNCTIONS
 # ============================================================
 
 def normalize_scheme_name(scheme_name: str) -> str:
-    """
-    Normalize scheme names so that small differences such as:
-
-        "Driving License"
-        " driving license "
-        "DRIVING LICENSE"
-
-    are treated as the same scheme.
-    """
-    return " ".join(scheme_name.strip().lower().split())
+    return " ".join(
+        scheme_name.strip().lower().split()
+    )
 
 
 def get_citizen(citizen_id: str):
-    """
-    Get citizen from Supabase.
-    """
-
     response = (
         supabase
         .table("citizens")
@@ -117,7 +106,7 @@ def get_citizen(citizen_id: str):
     if not response.data:
         raise HTTPException(
             status_code=404,
-            detail=f"Citizen {citizen_id} not found"
+            detail=f"Citizen {citizen_id} not found",
         )
 
     return response.data[0]
@@ -127,13 +116,6 @@ def find_duplicate_application(
     citizen_id: str,
     scheme_name: str,
 ):
-    """
-    Check whether the citizen already has an active application
-    for the same scheme.
-
-    Rejected applications do NOT block a new application.
-    """
-
     response = (
         supabase
         .table("welfare_applications")
@@ -142,19 +124,28 @@ def find_duplicate_application(
         .execute()
     )
 
-    if not response.data:
-        return None
+    applications = response.data or []
 
-    requested_scheme = normalize_scheme_name(scheme_name)
+    requested_scheme = normalize_scheme_name(
+        scheme_name
+    )
 
-    for application in response.data:
+    for application in applications:
 
         existing_scheme = normalize_scheme_name(
-            str(application.get("scheme_name", ""))
+            str(
+                application.get(
+                    "scheme_name",
+                    "",
+                )
+            )
         )
 
         existing_status = str(
-            application.get("application_status", "")
+            application.get(
+                "application_status",
+                "",
+            )
         ).strip().upper()
 
         if (
@@ -167,37 +158,37 @@ def find_duplicate_application(
 
 
 def generate_application_id() -> str:
-    """
-    Generate application ID.
-    Example:
-        APP-73C85FF0
-    """
-
     return f"APP-{uuid.uuid4().hex[:8].upper()}"
 
 
 def get_service_category(scheme_name: str) -> str:
-    """
-    Map service to department/category.
-    """
 
     categories = {
-        "Education Scholarship": "Social Welfare & Education",
-        "Student Assistance": "Social Welfare & Education",
+        "Education Scholarship":
+            "Social Welfare & Education",
 
-        "Driving License": "Transport & Vehicles",
-        "Vehicle Registration": "Transport & Vehicles",
+        "Student Assistance":
+            "Social Welfare & Education",
 
-        "Income Certificate": "Revenue & Land Administration",
+        "Driving License":
+            "Transport & Vehicles",
 
-        "Caste Certificate": "Backward Classes & Community Welfare",
+        "Vehicle Registration":
+            "Transport & Vehicles",
 
-        "Personal Loan": "Public Financial Institutions Network",
+        "Income Certificate":
+            "Revenue & Land Administration",
+
+        "Caste Certificate":
+            "Backward Classes & Community Welfare",
+
+        "Personal Loan":
+            "Public Financial Institutions Network",
     }
 
     return categories.get(
         scheme_name,
-        "Government Services"
+        "Government Services",
     )
 
 
@@ -206,9 +197,6 @@ def create_notification(
     event_type: str,
     message: str,
 ):
-    """
-    Create notification.
-    """
 
     notification_id = (
         f"NOT-{uuid.uuid4().hex[:8].upper()}"
@@ -223,6 +211,7 @@ def create_notification(
     }
 
     try:
+
         response = (
             supabase
             .table("notifications")
@@ -246,9 +235,6 @@ def create_audit_log(
     status: str = "SUCCESS",
     user_id: str = "SYSTEM",
 ):
-    """
-    Create audit log.
-    """
 
     log_id = (
         f"LOG-{uuid.uuid4().hex[:8].upper()}"
@@ -264,6 +250,7 @@ def create_audit_log(
     }
 
     try:
+
         response = (
             supabase
             .table("audit_logs")
@@ -286,30 +273,27 @@ def create_audit_log(
 
 @router.post("/submit")
 def submit_application(
-    request: ApplicationSubmitRequest
+    request: ApplicationSubmitRequest,
 ):
-    """
-    Submit a government service application.
-
-    Main flow:
-
-    1. Validate citizen
-    2. Handle TRACK separately
-    3. Check duplicate application
-    4. Check required consent
-    5. Check eligibility
-    6. Create application
-    7. Create notification
-    8. Create audit log
-    """
 
     citizen_id = request.citizen_id.strip()
-
     scheme_name = request.scheme_name.strip()
 
     operation = (
         request.operation or "APPLY"
     ).strip().upper()
+
+    if not citizen_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Citizen ID is required",
+        )
+
+    if not scheme_name:
+        raise HTTPException(
+            status_code=400,
+            detail="Scheme name is required",
+        )
 
     # --------------------------------------------------------
     # 1. Validate citizen
@@ -327,13 +311,24 @@ def submit_application(
             supabase
             .table("welfare_applications")
             .select("*")
-            .eq("applicant_ref", citizen_id)
-            .eq("scheme_name", scheme_name)
-            .order("submitted_on", desc=True)
+            .eq(
+                "applicant_ref",
+                citizen_id,
+            )
+            .eq(
+                "scheme_name",
+                scheme_name,
+            )
+            .order(
+                "submitted_on",
+                desc=True,
+            )
             .execute()
         )
 
-        applications = applications_response.data or []
+        applications = (
+            applications_response.data or []
+        )
 
         return {
             "application_submitted": False,
@@ -344,12 +339,14 @@ def submit_application(
         }
 
     # --------------------------------------------------------
-    # 3. DUPLICATE APPLICATION CHECK
+    # 3. Duplicate check
     # --------------------------------------------------------
 
-    duplicate_application = find_duplicate_application(
-        citizen_id=citizen_id,
-        scheme_name=scheme_name,
+    duplicate_application = (
+        find_duplicate_application(
+            citizen_id=citizen_id,
+            scheme_name=scheme_name,
+        )
     )
 
     if duplicate_application:
@@ -357,75 +354,86 @@ def submit_application(
         existing_status = str(
             duplicate_application.get(
                 "application_status",
-                ""
+                "",
             )
-        ).upper()
+        ).strip().upper()
 
         return {
             "application_submitted": False,
             "duplicate_application": True,
 
             "message": (
-                f"You already have an active application "
-                f"for {scheme_name}."
+                f"You already have an active "
+                f"application for {scheme_name}."
             ),
 
             "reason": (
-                "A citizen cannot submit another application "
-                "for the same scheme while an existing "
-                "application is active or approved."
+                "A citizen cannot submit another "
+                "application for the same scheme "
+                "while an existing application is "
+                "active or approved."
             ),
 
             "existing_application": {
-                "application_id": duplicate_application.get(
-                    "application_id"
-                ),
-                "scheme_name": duplicate_application.get(
-                    "scheme_name"
-                ),
-                "application_status": existing_status,
-                "submitted_on": duplicate_application.get(
-                    "submitted_on"
-                ),
+                "application_id":
+                    duplicate_application.get(
+                        "application_id"
+                    ),
+
+                "scheme_name":
+                    duplicate_application.get(
+                        "scheme_name"
+                    ),
+
+                "application_status":
+                    existing_status,
+
+                "submitted_on":
+                    duplicate_application.get(
+                        "submitted_on"
+                    ),
             },
         }
 
     # --------------------------------------------------------
-    # 4. REQUIRED CONSENT CHECK
+    # 4. Consent check
     # --------------------------------------------------------
 
-    # Education-related services require education + income
-    # consent before those datasets can be accessed.
-    consent_required_services = {
-        "Education Scholarship",
-        "Student Assistance",
-    }
+    if scheme_name in CONSENT_REQUIRED_SERVICES:
 
-    if scheme_name in consent_required_services:
-
-        consent_result = check_required_consents(
-            citizen_id=citizen_id
+        consent_result = (
+            check_required_consents(
+                citizen_id=citizen_id
+            )
         )
 
-        if not consent_result.get("all_granted", False):
+        if not consent_result.get(
+            "all_granted",
+            False,
+        ):
 
-            missing_consents = consent_result.get(
-                "missing",
-                []
+            missing_consents = (
+                consent_result.get(
+                    "missing",
+                    [],
+                )
             )
 
             return {
                 "application_submitted": False,
                 "consent_required": True,
+
                 "message": (
-                    "Required citizen consent has not "
-                    "been granted."
+                    "Required citizen consent "
+                    "has not been granted."
                 ),
-                "missing_consents": missing_consents,
+
+                "missing_consents":
+                    missing_consents,
             }
 
     # --------------------------------------------------------
-    # 5. CHECK ELIGIBILITY
+    # 5. Eligibility
     # --------------------------------------------------------
 
     eligibility_kwargs = {
@@ -434,7 +442,6 @@ def submit_application(
         "operation": operation,
     }
 
-    # Add optional fields only when provided
     optional_fields = [
         "license_type",
         "learner_license_id",
@@ -463,7 +470,11 @@ def submit_application(
 
     for field in optional_fields:
 
-        value = getattr(request, field, None)
+        value = getattr(
+            request,
+            field,
+            None,
+        )
 
         if value is not None:
             eligibility_kwargs[field] = value
@@ -475,8 +486,7 @@ def submit_application(
         )
 
     except TypeError:
-        # Compatibility fallback if the interoperability
-        # function accepts fewer parameters.
+
         eligibility = check_eligibility(
             citizen_id=citizen_id,
             scheme_name=scheme_name,
@@ -488,43 +498,55 @@ def submit_application(
     # --------------------------------------------------------
 
     if (
-        eligibility.get("eligibility_checked")
-        and not eligibility.get("eligible", False)
+        eligibility.get(
+            "eligibility_checked"
+        )
+        and not eligibility.get(
+            "eligible",
+            False,
+        )
     ):
 
         return {
             "application_submitted": False,
             "eligibility_checked": True,
             "eligible": False,
+
             "message": (
-                "Application cannot be submitted because "
-                "the citizen is not eligible."
+                "Application cannot be submitted "
+                "because the citizen is not eligible."
             ),
-            "reasons": eligibility.get(
-                "reasons",
-                []
-            ),
-            "criteria": eligibility.get(
-                "criteria",
-                {}
-            ),
-            "missing_consents": eligibility.get(
-                "missing_consents",
-                []
-            ),
-            "eligibility": eligibility,
+
+            "reasons":
+                eligibility.get(
+                    "reasons",
+                    [],
+                ),
+
+            "criteria":
+                eligibility.get(
+                    "criteria",
+                    {},
+                ),
+
+            "missing_consents":
+                eligibility.get(
+                    "missing_consents",
+                    [],
+                ),
+
+            "eligibility":
+                eligibility,
         }
 
     # --------------------------------------------------------
-    # 6. CREATE APPLICATION
+    # 6. Create application
     # --------------------------------------------------------
 
     application_id = generate_application_id()
 
     submitted_on = date.today().isoformat()
 
-    # Caste Certificate starts with verification because
-    # community/lineage/revenue verification may still be needed.
     if scheme_name == "Caste Certificate":
         initial_status = "UNDER_VERIFICATION"
     else:
@@ -563,7 +585,7 @@ def submit_application(
 
             raise HTTPException(
                 status_code=500,
-                detail="Failed to create application"
+                detail="Failed to create application",
             )
 
         application = insert_response.data[0]
@@ -575,90 +597,99 @@ def submit_application(
 
         error_text = str(exc)
 
-        # If a database-level unique constraint is later added,
-        # convert that conflict into the same duplicate response.
         if (
-            "duplicate"
-            in error_text.lower()
-            or "unique"
-            in error_text.lower()
+            "duplicate" in error_text.lower()
+            or "unique" in error_text.lower()
         ):
 
-            duplicate_application = find_duplicate_application(
-                citizen_id=citizen_id,
-                scheme_name=scheme_name,
+            duplicate_application = (
+                find_duplicate_application(
+                    citizen_id=citizen_id,
+                    scheme_name=scheme_name,
+                )
             )
 
             return {
                 "application_submitted": False,
                 "duplicate_application": True,
+
                 "message": (
-                    f"You already have an active application "
-                    f"for {scheme_name}."
+                    f"You already have an active "
+                    f"application for {scheme_name}."
                 ),
+
                 "existing_application":
                     duplicate_application,
             }
 
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to create application: {error_text}"
+            detail=(
+                "Failed to create application: "
+                f"{error_text}"
+            ),
         )
 
     # --------------------------------------------------------
-    # 7. CREATE NOTIFICATION
+    # 7. Notification
     # --------------------------------------------------------
-
-    notification_message = (
-        f"Your {scheme_name} application "
-        f"{application_id} has been submitted successfully."
-    )
 
     notification = create_notification(
         citizen_id=citizen_id,
         event_type="APPLICATION_SUBMITTED",
-        message=notification_message,
+        message=(
+            f"Your {scheme_name} application "
+            f"{application_id} has been "
+            f"submitted successfully."
+        ),
     )
 
     # --------------------------------------------------------
-    # 8. CREATE AUDIT LOG
+    # 8. Audit log
     # --------------------------------------------------------
 
     audit_log = create_audit_log(
         citizen_id=citizen_id,
         action=(
-            f"APPLICATION_SUBMITTED:{scheme_name}"
+            f"APPLICATION_SUBMITTED:"
+            f"{scheme_name}"
         ),
         purpose=scheme_name,
         status="SUCCESS",
     )
 
     # --------------------------------------------------------
-    # FINAL RESPONSE
+    # Final response
     # --------------------------------------------------------
 
     return {
         "application_submitted": True,
 
-        "message": (
-            "Application submitted successfully"
-        ),
+        "message":
+            "Application submitted successfully",
 
         "application": application,
 
-        "application_id": application_id,
+        "application_id":
+            application_id,
 
-        "status": initial_status,
+        "status":
+            initial_status,
 
-        "operation": operation,
+        "operation":
+            operation,
 
-        "service_category": service_category,
+        "service_category":
+            service_category,
 
-        "notification": notification,
+        "notification":
+            notification,
 
-        "audit_log": audit_log,
+        "audit_log":
+            audit_log,
 
-        "eligibility": eligibility,
+        "eligibility":
+            eligibility,
     }
 
 
@@ -668,11 +699,8 @@ def submit_application(
 
 @router.get("/{application_id}")
 def get_application(
-    application_id: str
+    application_id: str,
 ):
-    """
-    Get one application.
-    """
 
     response = (
         supabase
@@ -680,7 +708,7 @@ def get_application(
         .select("*")
         .eq(
             "application_id",
-            application_id
+            application_id,
         )
         .limit(1)
         .execute()
@@ -690,7 +718,7 @@ def get_application(
 
         raise HTTPException(
             status_code=404,
-            detail="Application not found"
+            detail="Application not found",
         )
 
     return {
@@ -705,11 +733,8 @@ def get_application(
 
 @router.get("/{application_id}/track")
 def track_application(
-    application_id: str
+    application_id: str,
 ):
-    """
-    Track application status.
-    """
 
     response = (
         supabase
@@ -717,7 +742,7 @@ def track_application(
         .select("*")
         .eq(
             "application_id",
-            application_id
+            application_id,
         )
         .limit(1)
         .execute()
@@ -727,46 +752,41 @@ def track_application(
 
         raise HTTPException(
             status_code=404,
-            detail="Application not found"
+            detail="Application not found",
         )
 
     application = response.data[0]
 
     return {
-        "application_id": application.get(
-            "application_id"
-        ),
-        "scheme_name": application.get(
-            "scheme_name"
-        ),
-        "status": application.get(
-            "application_status"
-        ),
-        "submitted_on": application.get(
-            "submitted_on"
-        ),
-        "operation": application.get(
-            "operation"
-        ),
-        "service_category": application.get(
-            "service_category"
-        ),
+        "application_id":
+            application.get("application_id"),
+
+        "scheme_name":
+            application.get("scheme_name"),
+
+        "status":
+            application.get("application_status"),
+
+        "submitted_on":
+            application.get("submitted_on"),
+
+        "operation":
+            application.get("operation"),
+
+        "service_category":
+            application.get("service_category"),
     }
 
 
 # ============================================================
-# GET ALL APPLICATIONS OF A CITIZEN
+# GET CITIZEN APPLICATIONS
 # ============================================================
 
 @router.get("/citizen/{citizen_id}")
 def get_citizen_applications(
-    citizen_id: str
+    citizen_id: str,
 ):
-    """
-    Get all applications belonging to a citizen.
-    """
 
-    # Validate citizen first
     get_citizen(citizen_id)
 
     response = (
@@ -775,19 +795,21 @@ def get_citizen_applications(
         .select("*")
         .eq(
             "applicant_ref",
-            citizen_id
+            citizen_id,
         )
         .order(
             "submitted_on",
-            desc=True
+            desc=True,
         )
         .execute()
     )
 
+    applications = response.data or []
+
     return {
         "citizen_id": citizen_id,
-        "applications": response.data or [],
-        "count": len(response.data or []),
+        "applications": applications,
+        "count": len(applications),
     }
 
 
@@ -800,31 +822,25 @@ def update_application_status(
     application_id: str,
     request: ApplicationStatusUpdateRequest,
 ):
-    """
-    Update application status.
 
-    Allowed transitions:
+    # --------------------------------------------------------
+    # Validate request body
+    # --------------------------------------------------------
 
-        SUBMITTED
-            -> UNDER_REVIEW
-            -> UNDER_VERIFICATION
-            -> REJECTED
+    user_id = request.user_id.strip()
+    new_status = request.new_status.strip().upper()
 
-        UNDER_VERIFICATION
-            -> UNDER_REVIEW
-            -> APPROVED
-            -> REJECTED
+    if not user_id:
+        raise HTTPException(
+            status_code=400,
+            detail="User ID is required",
+        )
 
-        UNDER_REVIEW
-            -> APPROVED
-            -> REJECTED
-
-        APPROVED
-            -> no further transition
-
-        REJECTED
-            -> no further transition
-    """
+    if not new_status:
+        raise HTTPException(
+            status_code=400,
+            detail="New status is required",
+        )
 
     # --------------------------------------------------------
     # Get application
@@ -836,7 +852,7 @@ def update_application_status(
         .select("*")
         .eq(
             "application_id",
-            application_id
+            application_id,
         )
         .limit(1)
         .execute()
@@ -846,7 +862,7 @@ def update_application_status(
 
         raise HTTPException(
             status_code=404,
-            detail="Application not found"
+            detail="Application not found",
         )
 
     application = response.data[0]
@@ -854,12 +870,8 @@ def update_application_status(
     old_status = str(
         application.get(
             "application_status",
-            ""
+            "",
         )
-    ).upper()
-
-    new_status = str(
-        request.new_status
     ).strip().upper()
 
     # --------------------------------------------------------
@@ -868,54 +880,56 @@ def update_application_status(
 
     allowed_transitions = {
 
-        "SUBMITTED": [
+        "SUBMITTED": {
             "UNDER_REVIEW",
             "UNDER_VERIFICATION",
             "REJECTED",
-        ],
+        },
 
-        "UNDER_REVIEW": [
+        "UNDER_REVIEW": {
             "APPROVED",
             "REJECTED",
-        ],
+        },
 
-        "UNDER_VERIFICATION": [
+        "UNDER_VERIFICATION": {
             "UNDER_REVIEW",
             "APPROVED",
             "REJECTED",
-        ],
+        },
 
-        "APPROVED": [],
+        "APPROVED": set(),
 
-        "REJECTED": [],
+        "REJECTED": set(),
     }
 
-    if new_status not in allowed_transitions.get(
+    allowed_statuses = allowed_transitions.get(
         old_status,
-        []
-    ):
+        set(),
+    )
+
+    if new_status not in allowed_statuses:
 
         raise HTTPException(
             status_code=400,
             detail=(
                 f"Invalid status transition: "
                 f"{old_status} -> {new_status}"
-            )
+            ),
         )
 
     # --------------------------------------------------------
-    # Update
+    # Update status
     # --------------------------------------------------------
 
     update_response = (
         supabase
         .table("welfare_applications")
         .update({
-            "application_status": new_status
+            "application_status": new_status,
         })
         .eq(
             "application_id",
-            application_id
+            application_id,
         )
         .execute()
     )
@@ -924,7 +938,7 @@ def update_application_status(
 
         raise HTTPException(
             status_code=500,
-            detail="Failed to update application status"
+            detail="Failed to update application status",
         )
 
     updated_application = (
@@ -948,8 +962,9 @@ def update_application_status(
         event_type="APPLICATION_STATUS_UPDATED",
         message=(
             f"Your {scheme_name} application "
-            f"{application_id} status has been updated "
-            f"from {old_status} to {new_status}."
+            f"{application_id} status has been "
+            f"updated from {old_status} "
+            f"to {new_status}."
         ),
     )
 
@@ -966,29 +981,34 @@ def update_application_status(
         ),
         purpose=scheme_name,
         status="SUCCESS",
-        user_id=request.user_id,
+        user_id=user_id,
     )
 
     # --------------------------------------------------------
-    # Response
+    # Final response
     # --------------------------------------------------------
 
     return {
         "success": True,
 
-        "message": (
-            "Application status updated successfully"
-        ),
+        "message":
+            "Application status updated successfully",
 
-        "application": updated_application,
+        "application":
+            updated_application,
 
-        "application_id": application_id,
+        "application_id":
+            application_id,
 
-        "old_status": old_status,
+        "old_status":
+            old_status,
 
-        "new_status": new_status,
+        "new_status":
+            new_status,
 
-        "notification": notification,
+        "notification":
+            notification,
 
-        "audit_log": audit_log,
+        "audit_log":
+            audit_log,
     }
