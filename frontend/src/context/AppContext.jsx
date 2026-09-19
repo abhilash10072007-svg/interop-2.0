@@ -102,6 +102,17 @@ export const AppProvider = ({ children }) => {
 
 
   // ============================================================
+  // DUPLICATE APPLICATION
+  //
+  // Stores the existing active application returned by backend
+  // when the citizen tries to submit the same scheme again.
+  // ============================================================
+
+  const [duplicateApplication, setDuplicateApplication] =
+    useState(null);
+
+
+  // ============================================================
   // AUDIT / ADMIN / HEALTH
   // ============================================================
 
@@ -572,6 +583,8 @@ export const AppProvider = ({ children }) => {
 
     setPendingApplicationMissingConsents([]);
 
+    setDuplicateApplication(null);
+
     setAuditLogs([]);
 
     setApplications([]);
@@ -758,9 +771,9 @@ export const AppProvider = ({ children }) => {
             );
 
 
-            // --------------------------------------------------
+            // ==================================================
             // APPLICATIONS
-            // --------------------------------------------------
+            // ==================================================
 
             if (
               Array.isArray(
@@ -793,9 +806,9 @@ export const AppProvider = ({ children }) => {
             }
 
 
-            // --------------------------------------------------
+            // ==================================================
             // NOTIFICATIONS
-            // --------------------------------------------------
+            // ==================================================
 
             if (
               Array.isArray(
@@ -883,9 +896,9 @@ export const AppProvider = ({ children }) => {
             }
 
 
-            // --------------------------------------------------
+            // ==================================================
             // CONSENTS
-            // --------------------------------------------------
+            // ==================================================
 
             if (
               Array.isArray(
@@ -893,8 +906,99 @@ export const AppProvider = ({ children }) => {
               )
             ) {
 
+              const mappedConsents =
+                dashRes.consents.map(
+                  (
+                    consent,
+                    index
+                  ) => {
+
+                    const status =
+                      String(
+                        consent.status ||
+                        ''
+                      ).toUpperCase();
+
+
+                    const enabled =
+                      status === 'GRANTED' ||
+                      status === 'ACTIVE';
+
+
+                    return {
+
+                      id:
+                        consent.consent_id ||
+                        `CON-${index}`,
+
+                      consent_id:
+                        consent.consent_id ||
+                        `CON-${index}`,
+
+                      name:
+                        consent.data_provider ||
+                        consent.department ||
+                        'Government Department',
+
+                      department:
+                        consent.data_provider ||
+                        consent.department ||
+                        'Government Department',
+
+                      category:
+                        consent.data_type ||
+                        consent.category ||
+                        'Required Data',
+
+                      dataType:
+                        consent.data_type ||
+                        consent.category ||
+                        'Required Data',
+
+                      dataProvider:
+                        consent.data_provider ||
+                        consent.department ||
+                        'Government Department',
+
+                      purpose:
+                        consent.purpose ||
+                        'Government Service',
+
+                      enabled,
+
+                      status:
+                        consent.status ||
+                        'PENDING',
+
+                      validTill:
+                        consent.expires_at
+                          ? new Date(
+                              consent.expires_at
+                            ).toLocaleDateString()
+                          : 'Valid till Active',
+
+                      grantedAt:
+                        consent.granted_at ||
+                        consent.created_at ||
+                        null,
+
+                      raw:
+                        consent,
+
+                    };
+
+                  }
+                );
+
+
+              console.log(
+                'LIVE CONSENTS FROM BACKEND:',
+                mappedConsents
+              );
+
+
               setConsents(
-                dashRes.consents
+                mappedConsents
               );
 
             }
@@ -1584,6 +1688,13 @@ export const AppProvider = ({ children }) => {
         }
 
 
+        // ======================================================
+        // CLEAR PREVIOUS DUPLICATE RESULT
+        // ======================================================
+
+        setDuplicateApplication(null);
+
+
         console.log(
           'APPLICATION SUBMISSION STARTED'
         );
@@ -1624,6 +1735,54 @@ export const AppProvider = ({ children }) => {
 
 
           // ====================================================
+          // DUPLICATE APPLICATION
+          //
+          // IMPORTANT:
+          // This check MUST happen before consent and
+          // eligibility failure handling.
+          // ====================================================
+
+          if (
+            response?.duplicate_application ===
+            true
+          ) {
+
+            console.log(
+              'APPLICATION BLOCKED: DUPLICATE APPLICATION'
+            );
+
+
+            const existingApplication =
+              response?.existing_application ||
+              null;
+
+
+            setDuplicateApplication(
+              existingApplication
+            );
+
+
+            // Make sure an old pending consent flow
+            // does not remain active.
+            setPendingApplication(null);
+
+            setPendingApplicationMissingConsents([]);
+
+
+            showToast(
+              response?.message ||
+                `You already have an active application for ${schemeName}.`,
+              'warning',
+              'Application Already Exists'
+            );
+
+
+            return response;
+
+          }
+
+
+          // ====================================================
           // SUCCESS
           // ====================================================
 
@@ -1635,6 +1794,8 @@ export const AppProvider = ({ children }) => {
             setPendingApplication(null);
 
             setPendingApplicationMissingConsents([]);
+
+            setDuplicateApplication(null);
 
 
             showToast(
@@ -2009,11 +2170,27 @@ export const AppProvider = ({ children }) => {
         if (!citizenId) {
 
           showToast(
-            'Please login first.',
-            'warning',
-            'Consent'
+            'Citizen ID is missing.',
+            'error',
+            'Consent Failed'
           );
 
+          return null;
+
+        }
+
+
+        if (
+          !dataProvider ||
+          !dataType ||
+          !purpose
+        ) {
+
+          showToast(
+            'Consent information is incomplete.',
+            'error',
+            'Consent Failed'
+          );
 
           return null;
 
@@ -2033,6 +2210,10 @@ export const AppProvider = ({ children }) => {
           );
 
 
+          // ====================================================
+          // 1. SAVE CONSENT TO BACKEND
+          // ====================================================
+
           const response =
             await api.grantConsent(
               citizenId,
@@ -2049,7 +2230,242 @@ export const AppProvider = ({ children }) => {
 
 
           // ====================================================
-          // REFRESH LIVE DATA
+          // 2. UPDATE LOCAL CONSENT IMMEDIATELY
+          // ====================================================
+
+          setConsents(
+            (previous) => {
+
+              const normalizedProvider =
+                String(
+                  dataProvider
+                ).trim()
+                .toLowerCase();
+
+
+              const normalizedType =
+                String(
+                  dataType
+                ).trim()
+                .toLowerCase();
+
+
+              const normalizedPurpose =
+                String(
+                  purpose
+                ).trim()
+                .toLowerCase();
+
+
+              const exists =
+                previous.some(
+                  (item) => {
+
+                    const itemProvider =
+                      String(
+                        item.dataProvider ||
+                        item.data_provider ||
+                        item.department ||
+                        ''
+                      )
+                        .trim()
+                        .toLowerCase();
+
+
+                    const itemType =
+                      String(
+                        item.dataType ||
+                        item.data_type ||
+                        item.category ||
+                        ''
+                      )
+                        .trim()
+                        .toLowerCase();
+
+
+                    const itemPurpose =
+                      String(
+                        item.purpose ||
+                        item.schemeName ||
+                        ''
+                      )
+                        .trim()
+                        .toLowerCase();
+
+
+                    return (
+                      itemProvider ===
+                        normalizedProvider &&
+                      itemType ===
+                        normalizedType &&
+                      itemPurpose ===
+                        normalizedPurpose
+                    );
+
+                  }
+                );
+
+
+              // ----------------------------------------------
+              // Existing consent → turn it ON
+              // ----------------------------------------------
+
+              if (exists) {
+
+                return previous.map(
+                  (item) => {
+
+                    const itemProvider =
+                      String(
+                        item.dataProvider ||
+                        item.data_provider ||
+                        item.department ||
+                        ''
+                      )
+                        .trim()
+                        .toLowerCase();
+
+
+                    const itemType =
+                      String(
+                        item.dataType ||
+                        item.data_type ||
+                        item.category ||
+                        ''
+                      )
+                        .trim()
+                        .toLowerCase();
+
+
+                    const itemPurpose =
+                      String(
+                        item.purpose ||
+                        item.schemeName ||
+                        ''
+                      )
+                        .trim()
+                        .toLowerCase();
+
+
+                    if (
+                      itemProvider ===
+                        normalizedProvider &&
+                      itemType ===
+                        normalizedType &&
+                      itemPurpose ===
+                        normalizedPurpose
+                    ) {
+
+                      return {
+
+                        ...item,
+
+                        enabled:
+                          true,
+
+                        status:
+                          'GRANTED',
+
+                        dataProvider:
+                          dataProvider,
+
+                        dataType:
+                          dataType,
+
+                        purpose:
+                          purpose,
+
+                      };
+
+                    }
+
+
+                    return item;
+
+                  }
+                );
+
+              }
+
+
+              // ----------------------------------------------
+              // New consent → add it
+              // ----------------------------------------------
+
+              return [
+
+                ...previous,
+
+                {
+
+                  id:
+                    response?.consent?.consent_id ||
+                    `CON-${citizenId}-${Date.now()}`,
+
+                  consent_id:
+                    response?.consent?.consent_id ||
+                    `CON-${citizenId}-${Date.now()}`,
+
+                  name:
+                    dataProvider,
+
+                  department:
+                    dataProvider,
+
+                  dataProvider:
+                    dataProvider,
+
+                  category:
+                    dataType,
+
+                  dataType:
+                    dataType,
+
+                  purpose:
+                    purpose,
+
+                  enabled:
+                    true,
+
+                  status:
+                    'GRANTED',
+
+                  validTill:
+                    response?.consent?.expires_at
+                      ? new Date(
+                          response.consent.expires_at
+                        ).toLocaleDateString()
+                      : 'Valid till Active',
+
+                  grantedAt:
+                    response?.consent?.granted_at ||
+                    new Date().toISOString(),
+
+                  raw:
+                    response?.consent ||
+                    null,
+
+                },
+
+              ];
+
+            }
+          );
+
+
+          // ====================================================
+          // 3. SUCCESS TOAST
+          // ====================================================
+
+          showToast(
+            `Consent granted for ${dataProvider}.`,
+            'success',
+            'Consent Granted'
+          );
+
+
+          // ====================================================
+          // 4. REFRESH BACKEND DATA
           // ====================================================
 
           await refreshBackendData(
@@ -2058,188 +2474,143 @@ export const AppProvider = ({ children }) => {
 
 
           // ====================================================
-          // RESUME PENDING APPLICATION
+          // 5. RESUME PENDING APPLICATION
           // ====================================================
 
           if (pendingApplication) {
 
-            console.log(
-              'PENDING APPLICATION FOUND — RETRYING SUBMISSION'
-            );
+            const currentMissing =
+              Array.isArray(
+                pendingApplicationMissingConsents
+              )
+                ? pendingApplicationMissingConsents
+                : [];
+
+
+            const normalizedProvider =
+              String(
+                dataProvider
+              )
+                .trim()
+                .toLowerCase();
+
+
+            const normalizedType =
+              String(
+                dataType
+              )
+                .trim()
+                .toLowerCase();
+
+
+            const remainingMissing =
+              currentMissing.filter(
+                (item) => {
+
+                  const provider =
+                    String(
+                      item.data_provider ||
+                      item.dataProvider ||
+                      item.department ||
+                      ''
+                    )
+                      .trim()
+                      .toLowerCase();
+
+
+                  const type =
+                    String(
+                      item.data_type ||
+                      item.dataType ||
+                      item.category ||
+                      ''
+                    )
+                      .trim()
+                      .toLowerCase();
+
+
+                  return !(
+                    provider ===
+                      normalizedProvider &&
+                    type ===
+                      normalizedType
+                  );
+
+                }
+              );
 
 
             console.log(
-              'Pending application:',
-              pendingApplication
+              'REMAINING CONSENTS:',
+              remainingMissing
             );
 
 
-            try {
+            setPendingApplicationMissingConsents(
+              remainingMissing
+            );
 
-              const resumedResponse =
-                await api.submitApplication(
-                  citizenId,
-                  pendingApplication.serviceName ||
-                    'Education Scholarship',
-                  pendingApplication
-                );
+
+            // ------------------------------------------------
+            // ALL REQUIRED CONSENTS GRANTED
+            // ------------------------------------------------
+
+            if (
+              remainingMissing.length ===
+              0
+            ) {
+
+              const applicationData =
+                {
+                  ...pendingApplication,
+                };
 
 
               console.log(
-                'RESUMED APPLICATION RESULT:',
-                resumedResponse
+                'ALL REQUIRED CONSENTS GRANTED.'
               );
 
 
-              // ------------------------------------------------
-              // RESUMED SUCCESS
-              // ------------------------------------------------
-
-              if (
-                resumedResponse?.application_submitted ===
-                true
-              ) {
-
-                setPendingApplication(null);
-
-                setPendingApplicationMissingConsents([]);
-
-
-                showToast(
-                  `Application ${
-                    resumedResponse.application?.application_id ||
-                    'submitted'
-                  } submitted successfully after consent.`,
-                  'success',
-                  'Application Submitted'
-                );
-
-
-                triggerConfetti();
-
-
-                await refreshBackendData(
-                  citizenId
-                );
-
-
-                setActiveTab(
-                  'tracking'
-                );
-
-
-                return resumedResponse;
-
-              }
-
-
-              // ------------------------------------------------
-              // MORE CONSENTS REQUIRED
-              // ------------------------------------------------
-
-              const remainingConsents =
-                Array.isArray(
-                  resumedResponse?.missing_consents
-                )
-                  ? resumedResponse.missing_consents
-                  : Array.isArray(
-                      resumedResponse?.missing_departments
-                    )
-                  ? resumedResponse.missing_departments
-                  : [];
-
-
-              if (
-                remainingConsents.length > 0
-              ) {
-
-                setPendingApplicationMissingConsents(
-                  remainingConsents
-                );
-
-
-                showToast(
-                  'Additional consent is still required.',
-                  'warning',
-                  'Consent Required'
-                );
-
-
-                return resumedResponse;
-
-              }
-
-
-              // ------------------------------------------------
-              // ELIGIBILITY FAILURE
-              // ------------------------------------------------
-
-              if (
-                resumedResponse?.application_submitted ===
-                false
-              ) {
-
-                showToast(
-                  resumedResponse?.message ||
-                    resumedResponse?.eligibility?.message ||
-                    'Application could not be submitted.',
-                  'warning',
-                  'Application'
-                );
-
-              }
-
-
-              return resumedResponse;
-
-
-            } catch (resumeError) {
-
-              console.error(
-                'Pending application resume failed:',
-                resumeError
+              console.log(
+                'RESUMING APPLICATION:',
+                applicationData
               );
 
 
-              showToast(
-                resumeError?.message ||
-                  'Unable to resume the pending application.',
-                'error',
-                'Application Resume Failed'
+              // Clear pending state before submit.
+              setPendingApplication(null);
+
+              setPendingApplicationMissingConsents(
+                []
               );
 
 
-              throw resumeError;
+              // Submit the original application.
+              const result =
+                await createApplication(
+                  applicationData
+                );
+
+
+              return result;
 
             }
 
           }
 
 
-          // ====================================================
-          // NORMAL CONSENT SUCCESS
-          // ====================================================
-
-          showToast(
-            'Consent granted successfully.',
-            'success',
-            'Consent Updated'
-          );
-
-
           return response;
-
 
         } catch (error) {
 
           console.error(
-            'Consent grant error:',
+            'Consent grant failed:',
             error
           );
 
 
           showToast(
-            error.message ||
+            error?.message ||
               'Unable to grant consent.',
             'error',
             'Consent Failed'
@@ -2254,9 +2625,10 @@ export const AppProvider = ({ children }) => {
       [
         citizenId,
         pendingApplication,
+        pendingApplicationMissingConsents,
         refreshBackendData,
+        createApplication,
         showToast,
-        triggerConfetti,
       ]
     );
 
@@ -2287,7 +2659,6 @@ export const AppProvider = ({ children }) => {
               'Consent'
             );
 
-
             return;
 
           }
@@ -2299,6 +2670,7 @@ export const AppProvider = ({ children }) => {
               target?.department ||
               target?.dataProvider ||
               target?.data_provider ||
+              target?.name ||
               'Education Department';
 
 
@@ -2321,110 +2693,12 @@ export const AppProvider = ({ children }) => {
             );
 
 
-            // ==================================================
-            // UPDATE LOCAL UI
-            // ==================================================
-
-            setConsents(
-              (previous) => {
-
-                const exists =
-                  previous.some(
-                    (item) =>
-                      item.id === id ||
-                      item.consent_id === id
-                  );
-
-
-                if (!exists) {
-
-                  return [
-
-                    ...previous,
-
-                    {
-
-                      id,
-
-                      consent_id:
-                        id,
-
-                      name:
-                        target?.name ||
-                        dataProvider,
-
-                      department:
-                        dataProvider,
-
-                      category:
-                        dataType,
-
-                      dataProvider,
-
-                      dataType,
-
-                      purpose,
-
-                      enabled:
-                        true,
-
-                      status:
-                        'GRANTED',
-
-                    },
-
-                  ];
-
-                }
-
-
-                return previous.map(
-                  (item) => {
-
-                    if (
-                      item.id === id ||
-                      item.consent_id === id
-                    ) {
-
-                      return {
-
-                        ...item,
-
-                        enabled:
-                          true,
-
-                        status:
-                          'GRANTED',
-
-                      };
-
-                    }
-
-
-                    return item;
-
-                  }
-                );
-
-              }
-            );
-
-
-            // NOTE:
-            // grantConsent already shows a success toast.
-            // We do not show another duplicate toast here.
-
-
           } catch (error) {
 
             console.warn(
               'Consent sync to backend error:',
               error
             );
-
-
-            // grantConsent already displays
-            // the backend error toast.
 
           }
 
@@ -2436,6 +2710,10 @@ export const AppProvider = ({ children }) => {
 
         // ======================================================
         // TURN OFF
+        //
+        // IMPORTANT:
+        // No fake backend revoke is performed.
+        // We only change local UI state.
         // ======================================================
 
         setConsents(
@@ -2580,9 +2858,28 @@ export const AppProvider = ({ children }) => {
 
     eligibilityData,
 
+
+    // ----------------------------------------------------------
+    // Pending Application
+    // ----------------------------------------------------------
+
     pendingApplication,
 
     pendingApplicationMissingConsents,
+
+
+    // ----------------------------------------------------------
+    // Duplicate Application
+    // ----------------------------------------------------------
+
+    duplicateApplication,
+
+    setDuplicateApplication,
+
+
+    // ----------------------------------------------------------
+    // Audit / Admin / Health
+    // ----------------------------------------------------------
 
     auditLogs,
 

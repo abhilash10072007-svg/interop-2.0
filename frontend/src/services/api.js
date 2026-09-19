@@ -19,7 +19,10 @@ async function request(endpoint, options = {}, timeoutMs = 5000) {
   try {
     let fullUrl;
 
-    // Full URL
+    // ----------------------------------------------------------
+    // FULL URL
+    // ----------------------------------------------------------
+
     if (
       endpoint.startsWith('http://') ||
       endpoint.startsWith('https://')
@@ -39,6 +42,10 @@ async function request(endpoint, options = {}, timeoutMs = 5000) {
 
     console.log('API Request:', fullUrl);
 
+    // ----------------------------------------------------------
+    // FETCH
+    // ----------------------------------------------------------
+
     const response = await fetch(fullUrl, {
       ...options,
 
@@ -52,16 +59,41 @@ async function request(endpoint, options = {}, timeoutMs = 5000) {
 
     clearTimeout(timeoutId);
 
+    // ----------------------------------------------------------
+    // ERROR HANDLING
+    // ----------------------------------------------------------
+
     if (!response.ok) {
       let errorDetail = '';
 
       try {
         const errorJson = await response.json();
 
-        errorDetail =
-          errorJson.message ||
-          errorJson.detail ||
-          JSON.stringify(errorJson);
+        // FastAPI validation errors normally come as:
+        // {
+        //   "detail": [
+        //      {
+        //        "loc": [...],
+        //        "msg": "...",
+        //        "type": "..."
+        //      }
+        //   ]
+        // }
+
+        if (errorJson.detail) {
+          if (typeof errorJson.detail === 'string') {
+            errorDetail = errorJson.detail;
+          } else {
+            errorDetail = JSON.stringify(
+              errorJson.detail
+            );
+          }
+        } else {
+          errorDetail =
+            errorJson.message ||
+            JSON.stringify(errorJson);
+        }
+
       } catch {
         errorDetail = await response
           .text()
@@ -75,10 +107,18 @@ async function request(endpoint, options = {}, timeoutMs = 5000) {
       );
     }
 
+    // ----------------------------------------------------------
+    // SUCCESS RESPONSE
+    // ----------------------------------------------------------
+
     return await response.json();
 
   } catch (err) {
     clearTimeout(timeoutId);
+
+    // ----------------------------------------------------------
+    // TIMEOUT
+    // ----------------------------------------------------------
 
     if (err.name === 'AbortError') {
       console.error(
@@ -89,6 +129,10 @@ async function request(endpoint, options = {}, timeoutMs = 5000) {
         `Request timed out: ${endpoint}`
       );
     }
+
+    // ----------------------------------------------------------
+    // OTHER ERROR
+    // ----------------------------------------------------------
 
     console.error(
       `API Request Failed: ${endpoint}`,
@@ -141,7 +185,6 @@ const api = {
         };
 
       } catch (err) {
-
         return {
           online: false,
           error: err.message,
@@ -223,110 +266,107 @@ const api = {
   // APPLICATIONS
   // ==========================================================
 
- async submitApplication(
-  citizenId,
-  schemeName,
-  applicationData = {}
-) {
-  const params = new URLSearchParams();
-
-  // Required
-  params.set('citizen_id', citizenId);
-  params.set('scheme_name', schemeName);
-
-  // Operation
-  if (applicationData.operation) {
-    params.set(
-      'operation',
-      applicationData.operation
-    );
-  }
-
-  // Driving License
-  if (applicationData.license_type) {
-    params.set(
-      'license_type',
-      applicationData.license_type
-    );
-  }
-
-  if (applicationData.issuing_district) {
-    params.set(
-      'issuing_district',
-      applicationData.issuing_district
-    );
-  }
-
-  if (applicationData.issuing_taluk) {
-    params.set(
-      'issuing_taluk',
-      applicationData.issuing_taluk
-    );
-  }
-
-  // Vehicle Registration
-  if (applicationData.chassis_number) {
-    params.set(
-      'chassis_number',
-      applicationData.chassis_number
-    );
-  }
-
-  if (applicationData.engine_number) {
-    params.set(
-      'engine_number',
-      applicationData.engine_number
-    );
-  }
-
-  if (
-    applicationData.invoice_present !== undefined
+  async submitApplication(
+    citizenId,
+    schemeName,
+    applicationData = {}
   ) {
-    params.set(
-      'invoice_present',
-      String(applicationData.invoice_present)
+
+    // --------------------------------------------------------
+    // BUILD JSON PAYLOAD
+    // --------------------------------------------------------
+
+    const payload = {
+      citizen_id: citizenId,
+
+      scheme_name: schemeName,
+
+      operation:
+        applicationData.operation || 'APPLY',
+
+      // ------------------------------------------------------
+      // DRIVING LICENSE
+      // ------------------------------------------------------
+
+      ...(applicationData.license_type && {
+        license_type:
+          applicationData.license_type,
+      }),
+
+      ...(applicationData.issuing_district && {
+        issuing_district:
+          applicationData.issuing_district,
+      }),
+
+      ...(applicationData.issuing_taluk && {
+        issuing_taluk:
+          applicationData.issuing_taluk,
+      }),
+
+      // ------------------------------------------------------
+      // VEHICLE REGISTRATION
+      // ------------------------------------------------------
+
+      ...(applicationData.chassis_number && {
+        chassis_number:
+          applicationData.chassis_number,
+      }),
+
+      ...(applicationData.engine_number && {
+        engine_number:
+          applicationData.engine_number,
+      }),
+
+      ...(applicationData.invoice_present !== undefined && {
+        invoice_present:
+          applicationData.invoice_present,
+      }),
+
+      ...(applicationData.insurance_active !== undefined && {
+        insurance_active:
+          applicationData.insurance_active,
+      }),
+
+      ...(applicationData.puc_valid !== undefined && {
+        puc_valid:
+          applicationData.puc_valid,
+      }),
+
+      // ------------------------------------------------------
+      // PERSONAL LOAN
+      // ------------------------------------------------------
+
+      ...(applicationData.declared_income !== undefined &&
+        applicationData.declared_income !== null &&
+        applicationData.declared_income !== '' && {
+          declared_income:
+            applicationData.declared_income,
+        }),
+    };
+
+    console.log(
+      'APPLICATION SUBMIT PAYLOAD:',
+      payload
     );
-  }
 
-  if (
-    applicationData.insurance_active !== undefined
-  ) {
-    params.set(
-      'insurance_active',
-      String(applicationData.insurance_active)
+    // --------------------------------------------------------
+    // SEND JSON BODY
+    // --------------------------------------------------------
+
+    return await request(
+      '/applications/submit',
+      {
+        method: 'POST',
+
+        body: JSON.stringify(payload),
+      }
     );
-  }
+  },
 
-  if (
-    applicationData.puc_valid !== undefined
-  ) {
-    params.set(
-      'puc_valid',
-      String(applicationData.puc_valid)
-    );
-  }
 
-  // Personal Loan / income verification
-  if (
-    applicationData.declared_income !== undefined &&
-    applicationData.declared_income !== null &&
-    applicationData.declared_income !== ''
-  ) {
-    params.set(
-      'declared_income',
-      String(applicationData.declared_income)
-    );
-  }
-
-  return await request(
-    '/applications/submit?' +
-      params.toString(),
-    {
-      method: 'POST',
-    }
-  );
-},
-
+  // ==========================================================
+  // GET APPLICATION
+  // ==========================================================
 
   async getApplication(applicationId) {
     return await request(
@@ -334,28 +374,44 @@ const api = {
         encodeURIComponent(applicationId)
     );
   },
-async trackApplication(
-  applicationId,
-  citizenId
-) {
-  const params = new URLSearchParams({
-    citizen_id: citizenId,
-  });
 
-  return await request(
-    '/applications/' +
-      encodeURIComponent(applicationId) +
-      '/track?' +
-      params.toString()
-  );
-},
+
+  // ==========================================================
+  // TRACK APPLICATION
+  // ==========================================================
+
+  async trackApplication(
+    applicationId,
+    citizenId
+  ) {
+    const params = new URLSearchParams({
+      citizen_id: citizenId,
+    });
+
+    return await request(
+      '/applications/' +
+        encodeURIComponent(applicationId) +
+        '/track?' +
+        params.toString()
+    );
+  },
+
+
+  // ==========================================================
+  // GET CITIZEN APPLICATIONS
+  // ==========================================================
 
   async getCitizenApplications(citizenId) {
-  return request(
-    `/applications/citizen/${citizenId}`
-  );
-},
+    return await request(
+      '/applications/citizen/' +
+        encodeURIComponent(citizenId)
+    );
+  },
 
+
+  // ==========================================================
+  // UPDATE APPLICATION STATUS
+  // ==========================================================
 
   async updateApplicationStatus(
     applicationId,
@@ -459,9 +515,9 @@ async trackApplication(
   },
 
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // MARK ONE NOTIFICATION AS READ
-  // ----------------------------------------------------------
+  // ==========================================================
 
   async markNotificationRead(
     notificationId
@@ -477,9 +533,9 @@ async trackApplication(
   },
 
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // MARK ALL NOTIFICATIONS AS READ
-  // ----------------------------------------------------------
+  // ==========================================================
 
   async markAllNotificationsRead(
     citizenId

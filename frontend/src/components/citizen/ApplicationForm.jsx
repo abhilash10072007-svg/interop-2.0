@@ -85,11 +85,15 @@ export const ApplicationForm = () => {
   // STATE
   // ============================================================
 
+  
+
   const [selectedScheme, setSelectedScheme] =
     useState(getInitialScheme);
 
   const [currentStep, setCurrentStep] =
     useState(1);
+
+  const [duplicateApplication, setDuplicateApplication] = useState(null);
 
   const [eligibilityFailure, setEligibilityFailure] =
     useState(null);
@@ -519,8 +523,9 @@ export const ApplicationForm = () => {
     );
 
     setCurrentStep(1);
-    setSubmissionResult(null);
-    setEligibilityFailure(null);
+setSubmissionResult(null);
+setEligibilityFailure(null);
+setDuplicateApplication(null);
 
   };
 
@@ -567,9 +572,10 @@ export const ApplicationForm = () => {
     // ----------------------------------------------------------
 
     setEligibilityFailure(null);
-    setSubmissionResult(null);
+setSubmissionResult(null);
+setDuplicateApplication(null);
 
-    setIsSubmitting(true);
+setIsSubmitting(true);
 
 
     try {
@@ -641,6 +647,20 @@ export const ApplicationForm = () => {
           ...formData
 
         });
+        // ============================================================
+// DUPLICATE APPLICATION RESPONSE
+// ============================================================
+
+if (result?.duplicate_application) {
+  setDuplicateApplication(
+    result.existing_application || null
+  );
+
+  setSubmissionResult(null);
+  setEligibilityFailure(null);
+
+  return;
+}
 
 
       console.log(
@@ -2109,7 +2129,118 @@ export const ApplicationForm = () => {
               </div>
 
             )}
+            {/* ================================================= */}
+{/* DUPLICATE APPLICATION RESULT */}
+{/* ================================================= */}
 
+{duplicateApplication && (
+
+  <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
+
+    <div className="flex items-start gap-3">
+
+      <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+
+      <div className="flex-1">
+
+        <p className="text-xs font-bold text-amber-900">
+          Application Already Exists
+        </p>
+
+        <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+          You already have an active application for this
+          service. A new application cannot be submitted
+          while the existing application is active.
+        </p>
+
+
+        <div className="mt-3 bg-white border border-amber-200 rounded-lg p-3">
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+
+            {/* Application ID */}
+            <div>
+
+              <p className="text-[10px] font-bold uppercase text-slate-500">
+                Application ID
+              </p>
+
+              <p className="mt-1 text-xs font-mono font-bold text-slate-900">
+                {duplicateApplication.application_id || '--'}
+              </p>
+
+            </div>
+
+
+            {/* Scheme */}
+            <div>
+
+              <p className="text-[10px] font-bold uppercase text-slate-500">
+                Scheme
+              </p>
+
+              <p className="mt-1 text-xs font-bold text-slate-900">
+                {duplicateApplication.scheme_name || selectedScheme}
+              </p>
+
+            </div>
+
+
+            {/* Status */}
+            <div>
+
+              <p className="text-[10px] font-bold uppercase text-slate-500">
+                Status
+              </p>
+
+              <p className="mt-1 text-xs font-bold text-amber-700">
+                {duplicateApplication.application_status || 'ACTIVE'}
+              </p>
+
+            </div>
+
+          </div>
+
+
+          {/* Submitted date */}
+
+          {duplicateApplication.submitted_on && (
+
+            <div className="mt-3 pt-3 border-t border-slate-100">
+
+              <p className="text-[10px] font-bold uppercase text-slate-500">
+                Submitted On
+              </p>
+
+              <p className="mt-1 text-xs font-semibold text-slate-700">
+                {duplicateApplication.submitted_on}
+              </p>
+
+            </div>
+
+          )}
+
+        </div>
+
+
+        <div className="mt-3 flex items-center gap-2">
+
+          <CheckCircle2 className="w-4 h-4 text-amber-600" />
+
+          <p className="text-[11px] text-amber-800">
+            Please track your existing application instead
+            of submitting another application.
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+)}
 
             {/* ================================================= */}
             {/* BACKEND SUBMISSION RESULT */}
